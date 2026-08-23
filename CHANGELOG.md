@@ -2,6 +2,13 @@
 
 All notable WinMax changes are recorded here.
 
+## 1.0.1 — 2026-08-23
+
+### Fixed
+
+- Fixed the first-run Accessibility step getting stuck after permission was granted in System Settings.
+- The onboarding wizard now polls Accessibility trust live and automatically advances once WinMax receives permission.
+
 ## 1.0.0 — 2026-08-23
 
 ### Added
