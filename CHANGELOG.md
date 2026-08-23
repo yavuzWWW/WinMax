@@ -14,15 +14,17 @@ All notable WinMax changes are recorded here.
 - Background Menu Vault scanning with bounded Accessibility messaging timeouts.
 - Fresh status-item re-resolution before `AXPress` activation to avoid stale Accessibility references.
 - Dedicated Menu Vault settings and expanded first-run onboarding.
-- Deterministic Snap geometry tests in the CI production gate.
+- Deterministic Snap geometry tests in the CI production gate, including trigger boundaries and negative-coordinate displays.
 
 ### Changed
 
 - Consolidated window drag observation onto WinMax's existing CoreGraphics event tap instead of installing a second Snap event tap.
 - Settings now use a scrollable native layout and separate Window Control / Menu Bar sections.
 - Launch-at-login UI now treats macOS `requiresApproval` as a pending enabled request instead of repeatedly registering it.
+- WinMax now prohibits multiple simultaneous app instances, reducing duplicate DMG/Application launches and Accessibility identity conflicts.
 - Build validation treats Swift warnings as errors and checks for unexpected user/Homebrew dynamic dependencies.
 - DMG/ZIP packaging now includes stronger cleanup, extraction and checksum verification.
+- GitHub Actions uses the current checkout runtime for permanent build/release workflows.
 - Repository documentation and release guidance were refreshed for the expanded WinMax product.
 
 ### Privacy and safety
