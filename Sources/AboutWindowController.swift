@@ -1,7 +1,9 @@
 import Cocoa
 
 final class AboutWindowController: NSWindowController {
-    init() {
+    static let shared = AboutWindowController()
+
+    private init() {
         let window = NSWindow(
             contentRect: NSRect(x: 0, y: 0, width: 520, height: 410),
             styleMask: [.titled, .closable],
