@@ -9,6 +9,11 @@ struct LayoutShortcutTests {
         expect(resolve(126) == .maximize, "up arrow")
         expect(resolve(12) == nil, "unrelated key")
 
+        expect(resolve(123, shift: true) == .previousDisplay, "shift-left moves to previous display")
+        expect(resolve(124, shift: true) == .nextDisplay, "shift-right moves to next display")
+        expect(resolve(125, shift: true) == nil, "shift-down remains unclaimed")
+        expect(resolve(126, shift: true) == nil, "shift-up remains unclaimed")
+
         expect(LayoutShortcut.command(
             keyCode: 123,
             control: false,
@@ -33,24 +38,16 @@ struct LayoutShortcutTests {
             shift: false
         ) == nil, "command is required")
 
-        expect(LayoutShortcut.command(
-            keyCode: 123,
-            control: true,
-            option: true,
-            command: true,
-            shift: true
-        ) == nil, "shift variants remain unclaimed")
-
         print("Layout shortcut tests passed")
     }
 
-    private static func resolve(_ keyCode: UInt16) -> LayoutShortcutCommand? {
+    private static func resolve(_ keyCode: UInt16, shift: Bool = false) -> LayoutShortcutCommand? {
         LayoutShortcut.command(
             keyCode: keyCode,
             control: true,
             option: true,
             command: true,
-            shift: false
+            shift: shift
         )
     }
 

@@ -93,6 +93,10 @@ final class LayoutShortcutController {
             WindowLayoutCommandController.shared.apply(.maximize)
         case .restore:
             WindowLayoutCommandController.shared.restore()
+        case .previousDisplay:
+            WindowLayoutCommandController.shared.moveToDisplay(.previous)
+        case .nextDisplay:
+            WindowLayoutCommandController.shared.moveToDisplay(.next)
         }
         return true
     }
