@@ -18,7 +18,8 @@ struct SettingsProfileTests {
         let data = try encoder.encode(profile)
         let decoded = try JSONDecoder().decode(WinMaxSettingsProfile.self, from: data)
         expect(decoded == profile, "round-trip preserves settings")
-        expect(try decoded.validated() == profile, "current schema validates")
+        let validated = try decoded.validated()
+        expect(validated == profile, "current schema validates")
 
         let future = WinMaxSettingsProfile(
             schemaVersion: WinMaxSettingsProfile.currentSchemaVersion + 1,
