@@ -48,7 +48,8 @@ final class UpdateChecker {
 
                 guard let http = response as? HTTPURLResponse,
                       (200...299).contains(http.statusCode),
-                      let data else {
+                      let data,
+                      data.count <= 1_000_000 else {
                     self.presentError(
                         "Couldn’t check for updates",
                         detail: "GitHub did not return a valid release response.",
@@ -59,6 +60,15 @@ final class UpdateChecker {
 
                 do {
                     let release = try JSONDecoder().decode(Release.self, from: data)
+                    guard Self.isTrustedReleaseURL(release.htmlURL) else {
+                        self.presentError(
+                            "Couldn’t check for updates",
+                            detail: "The release response contained an unexpected destination.",
+                            window: window
+                        )
+                        return
+                    }
+
                     let latest = release.tagName.trimmingCharacters(in: CharacterSet(charactersIn: "vV"))
                     if WinMaxVersioning.compare(latest, WinMaxProduct.version) == .orderedDescending {
                         self.presentUpdate(latest: latest, url: release.htmlURL, window: window)
@@ -74,6 +84,14 @@ final class UpdateChecker {
                 }
             }
         }.resume()
+    }
+
+    private static func isTrustedReleaseURL(_ url: URL) -> Bool {
+        guard url.scheme?.lowercased() == "https",
+              url.host?.lowercased() == "github.com" else {
+            return false
+        }
+        return url.path.hasPrefix("/yavuzWWW/WinMax/releases/")
     }
 
     private func presentUpdate(latest: String, url: URL, window: NSWindow?) {
