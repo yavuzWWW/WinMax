@@ -8,6 +8,7 @@ final class SettingsStore {
         static let overrideGreenButton = "overrideGreenButton"
         static let titleBarDoubleClick = "titleBarDoubleClick"
         static let overrideFullscreenShortcut = "overrideFullscreenShortcut"
+        static let aeroSnapEnabled = "aeroSnapEnabled"
         static let showWindowOnLaunch = "showWindowOnLaunch"
         static let hasCompletedOnboarding = "hasCompletedOnboarding"
     }
@@ -20,6 +21,7 @@ final class SettingsStore {
             Key.overrideGreenButton: true,
             Key.titleBarDoubleClick: true,
             Key.overrideFullscreenShortcut: true,
+            Key.aeroSnapEnabled: true,
             Key.showWindowOnLaunch: false,
             Key.hasCompletedOnboarding: false
         ])
@@ -43,6 +45,11 @@ final class SettingsStore {
     var overrideFullscreenShortcut: Bool {
         get { defaults.bool(forKey: Key.overrideFullscreenShortcut) }
         set { defaults.set(newValue, forKey: Key.overrideFullscreenShortcut); notify() }
+    }
+
+    var aeroSnapEnabled: Bool {
+        get { defaults.bool(forKey: Key.aeroSnapEnabled) }
+        set { defaults.set(newValue, forKey: Key.aeroSnapEnabled); notify() }
     }
 
     var showWindowOnLaunch: Bool {
