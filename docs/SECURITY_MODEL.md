@@ -10,14 +10,22 @@ macOS Accessibility permission is required to:
 - read/set supported window position and size
 - discover status items exposed through `AXExtrasMenuBar`
 - activate a selected Menu Vault item with `AXPress`
+- apply WinMax's fixed global window-layout shortcuts
 
 WinMax does not bypass Apple's permission system. Screen Recording is not required.
 
-## Event interception
+## Event interception and keyboard shortcuts
 
-WinMax uses one CoreGraphics session event tap for left-mouse events and the small set of global shortcuts it implements. It consumes only configured WinMax interactions. Normal input is passed through.
+WinMax uses one CoreGraphics session event tap for its existing mouse/window interactions and configured CoreGraphics shortcut overrides. Aero Snap does not install a second event tap.
 
-WinMax does **not** log typed text or general key sequences.
+The keyboard-layout feature uses AppKit's global/local event monitor APIs rather than another CoreGraphics tap. It only reacts when the exact `Control + Option + Command` modifier combination is held with one of the four arrow keys:
+
+- Left → left half
+- Right → right half
+- Up → maximize
+- Down → restore
+
+The mapping uses hardware key codes only. WinMax does **not** read, store or log typed characters, text content or general key sequences. Events that do not match a supported WinMax shortcut are ignored.
 
 ## Menu Vault data
 
@@ -33,6 +41,12 @@ The **Check for Updates…** command is an explicit user-initiated network actio
 
 WinMax does not automatically download or install an update. If a newer version exists, the user can choose to open the official GitHub Release page in their browser.
 
+## Settings profiles
+
+Settings export writes only WinMax behavior preferences to a versioned local JSON file chosen by the user. Accessibility permission, onboarding state and Launch at Login are not included in the profile.
+
+Imported settings files must be regular JSON files, remain below WinMax's small import-size limit and use a supported schema version. Unsupported future schemas are rejected instead of guessed or partially applied.
+
 ## Logs
 
 Logs are stored in:
@@ -41,7 +55,7 @@ Logs are stored in:
 ~/Library/Logs/WinMax/
 ```
 
-They contain runtime state/errors only. Window titles, document names, Menu Vault item labels and keystroke text are excluded. Failed update checks are logged only as a generic failure event; response contents and user data are not logged. Log rotation prevents unbounded growth.
+They contain runtime state/errors only. Window titles, document names, Menu Vault item labels and keystroke text are excluded. Failed update checks and settings-profile operations are logged only as generic failure events; response contents and user data are not logged. Log rotation prevents unbounded growth.
 
 ## Distribution
 

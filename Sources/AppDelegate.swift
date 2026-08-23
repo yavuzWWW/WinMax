@@ -20,6 +20,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         WindowController.shared.start()
         AeroSnapManager.shared.start()
         MenuVaultController.shared.start()
+        LayoutShortcutController.shared.start()
 
         NotificationCenter.default.addObserver(
             self,
@@ -47,6 +48,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationWillTerminate(_ notification: Notification) {
+        LayoutShortcutController.shared.stop()
         MenuVaultController.shared.stop()
         AeroSnapManager.shared.stop()
         WindowController.shared.stop()
@@ -88,6 +90,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         enabledItem = NSMenuItem(title: "Window Control Enabled", action: #selector(toggleEnabled), keyEquivalent: "")
         enabledItem.target = self
         menu.addItem(enabledItem)
+
+        let layouts = NSMenuItem(title: "Window Layout", action: nil, keyEquivalent: "")
+        let layoutMenu = NSMenu(title: "Window Layout")
+        addLayoutItem("Left Half", action: #selector(layoutLeft), shortcut: "⌃⌥⌘←", to: layoutMenu)
+        addLayoutItem("Right Half", action: #selector(layoutRight), shortcut: "⌃⌥⌘→", to: layoutMenu)
+        addLayoutItem("Maximize", action: #selector(layoutMaximize), shortcut: "⌃⌥⌘↑", to: layoutMenu)
+        addLayoutItem("Restore", action: #selector(layoutRestore), shortcut: "⌃⌥⌘↓", to: layoutMenu)
+        layouts.submenu = layoutMenu
+        menu.addItem(layouts)
 
         let maximize = NSMenuItem(title: "Maximize / Restore Front Window", action: #selector(toggleFrontWindow), keyEquivalent: "")
         maximize.target = self
@@ -144,6 +155,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         statusItem.menu = menu
     }
 
+    private func addLayoutItem(_ title: String, action: Selector, shortcut: String, to menu: NSMenu) {
+        let item = NSMenuItem(title: title, action: action, keyEquivalent: "")
+        item.target = self
+        item.toolTip = shortcut
+        menu.addItem(item)
+    }
+
     @objc private func refreshMenu() {
         let settings = SettingsStore.shared
         enabledItem?.state = settings.enabled ? .on : .off
@@ -197,6 +215,22 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     @objc private func resetSettings() {
         SettingsProfileController.shared.resetSettings(presenting: settingsWindowController.window)
+    }
+
+    @objc private func layoutLeft() {
+        WindowLayoutCommandController.shared.apply(.leftHalf)
+    }
+
+    @objc private func layoutRight() {
+        WindowLayoutCommandController.shared.apply(.rightHalf)
+    }
+
+    @objc private func layoutMaximize() {
+        WindowLayoutCommandController.shared.apply(.maximize)
+    }
+
+    @objc private func layoutRestore() {
+        WindowLayoutCommandController.shared.restore()
     }
 
     @objc private func toggleEnabled() {
