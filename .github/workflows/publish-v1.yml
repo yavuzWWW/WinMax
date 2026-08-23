@@ -1,4 +1,4 @@
-name: Publish WinMax v1.0.0
+name: Publish WinMax v1.0.1
 
 on:
   push:
@@ -14,7 +14,7 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  WINMAX_VERSION: "1.0.0"
+  WINMAX_VERSION: "1.0.1"
   MACOS_CERTIFICATE_BASE64: ${{ secrets.MACOS_CERTIFICATE_BASE64 }}
   MACOS_CERTIFICATE_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
   MACOS_KEYCHAIN_PASSWORD: ${{ secrets.MACOS_KEYCHAIN_PASSWORD }}
@@ -92,25 +92,16 @@ jobs:
       - name: Write release notes
         run: |
           cat > "$RUNNER_TEMP/release-notes.md" <<'EOF'
-          # WinMax 1.0.0
+          # WinMax 1.0.1
 
-          First public release of WinMax by Vast Hosting.
+          Bug-fix release for the first-run Accessibility setup.
 
-          ## Highlights
-          - Windows-style maximize/restore on macOS
-          - Green button override without separate fullscreen Spaces
-          - Double-click title bar maximize/restore
-          - Control + Command + F override
-          - Drag-down restore behavior
-          - Native Vast Hosting-branded settings UI
-          - Guided first-run Accessibility setup
-          - Branded drag-to-Applications DMG installer
-          - Launch at login
-          - Universal Apple Silicon + Intel build
-          - Local diagnostics with no telemetry
+          ## Fixed
+          - Accessibility onboarding no longer gets stuck after permission is granted.
+          - The setup screen now detects permission changes live and advances automatically.
 
           ## Downloads
-          Use the `.dmg` installer for normal installation. The `.zip` is provided as an alternative portable archive. Verify downloads with `SHA256SUMS.txt` if desired.
+          Use `WinMax-1.0.1.dmg` for normal installation. The `.zip` is provided as an alternative archive. Verify downloads with `SHA256SUMS.txt` if desired.
           EOF
 
       - name: Publish GitHub Release
