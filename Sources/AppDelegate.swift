@@ -7,7 +7,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusItemLabel: NSMenuItem!
     private var settingsWindowController: SettingsWindowController!
     private var onboardingWindowController: OnboardingWindowController!
-    private var aboutWindowController: AboutWindowController!
+    private let aboutWindowController = AboutWindowController.shared
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
@@ -15,7 +15,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         settingsWindowController = SettingsWindowController()
         onboardingWindowController = OnboardingWindowController()
-        aboutWindowController = AboutWindowController()
         setupMenuBar()
 
         WindowController.shared.start()
