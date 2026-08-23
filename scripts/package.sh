@@ -17,6 +17,7 @@ DMG="$DIST/WinMax-$VERSION.dmg"
 ZIP="$DIST/WinMax-$VERSION.zip"
 RW_DMG="$WORK/WinMax-rw.dmg"
 BACKGROUND="$WORK/WinMax-DMG.png"
+STYLE_SCRIPT="$WORK/style-dmg.applescript"
 VOLUME="WinMax $VERSION"
 
 rm -rf "$DIST" "$STAGE" "$WORK"
@@ -37,7 +38,7 @@ hdiutil create \
 MOUNT_POINT="$(hdiutil attach "$RW_DMG" -readwrite -noverify -noautoopen | awk '/\/Volumes\// {sub(/^.*\/Volumes\//, "/Volumes/"); print; exit}')"
 
 if [[ -n "$MOUNT_POINT" && -d "$MOUNT_POINT" ]]; then
-  osascript <<EOF || true
+  cat > "$STYLE_SCRIPT" <<EOF
 tell application "Finder"
   tell disk "$VOLUME"
     open
@@ -59,6 +60,26 @@ tell application "Finder"
   end tell
 end tell
 EOF
+
+  /usr/bin/osascript "$STYLE_SCRIPT" &
+  STYLE_PID=$!
+  (
+    sleep 8
+    if kill -0 "$STYLE_PID" 2>/dev/null; then
+      echo "Warning: Finder styling timed out; using standard DMG layout." >&2
+      kill -TERM "$STYLE_PID" 2>/dev/null || true
+    fi
+  ) &
+  WATCHDOG_PID=$!
+
+  if wait "$STYLE_PID"; then
+    :
+  else
+    echo "Warning: Finder styling was unavailable; using standard DMG layout." >&2
+  fi
+  kill "$WATCHDOG_PID" 2>/dev/null || true
+  wait "$WATCHDOG_PID" 2>/dev/null || true
+
   sync
   hdiutil detach "$MOUNT_POINT" -quiet || hdiutil detach "$MOUNT_POINT" -force -quiet
 else
