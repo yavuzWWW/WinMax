@@ -1,5 +1,6 @@
 import Cocoa
 import ApplicationServices
+import CoreGraphics
 
 final class AeroSnapManager {
     static let shared = AeroSnapManager()
@@ -23,34 +24,114 @@ final class AeroSnapManager {
         var restoredDuringDrag: Bool
     }
 
+    private var eventTap: CFMachPort?
+    private var source: CFRunLoopSource?
+    private var permissionTimer: Timer?
     private var session: Session?
     private var restoreFrames: [String: CGRect] = [:]
     private let preview = SnapPreviewWindow()
+    private let systemWide = AXUIElementCreateSystemWide()
 
     private init() {}
 
-    func begin(window: AXUIElement, at point: CGPoint) {
-        guard SettingsStore.shared.aeroSnapEnabled,
-              isResizable(window),
-              let current = frame(window) else {
+    func start() {
+        installEventTapIfPossible()
+        permissionTimer?.invalidate()
+        permissionTimer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
+            self?.installEventTapIfPossible()
+        }
+    }
+
+    func stop() {
+        permissionTimer?.invalidate()
+        permissionTimer = nil
+        cancel()
+        if let source { CFRunLoopRemoveSource(CFRunLoopGetMain(), source, .commonModes) }
+        if let eventTap {
+            CGEvent.tapEnable(tap: eventTap, enable: false)
+            CFMachPortInvalidate(eventTap)
+        }
+        source = nil
+        eventTap = nil
+    }
+
+    private func installEventTapIfPossible() {
+        guard eventTap == nil, AXIsProcessTrusted() else { return }
+        let mask = CGEventMask(
+            (1 << CGEventType.leftMouseDown.rawValue) |
+            (1 << CGEventType.leftMouseDragged.rawValue) |
+            (1 << CGEventType.leftMouseUp.rawValue)
+        )
+        let callback: CGEventTapCallBack = { _, type, event, info in
+            guard let info else { return Unmanaged.passUnretained(event) }
+            let manager = Unmanaged<AeroSnapManager>.fromOpaque(info).takeUnretainedValue()
+            manager.handle(type: type, event: event)
+            return Unmanaged.passUnretained(event)
+        }
+        eventTap = CGEvent.tapCreate(
+            tap: .cgSessionEventTap,
+            place: .tailAppendEventTap,
+            options: .defaultTap,
+            eventsOfInterest: mask,
+            callback: callback,
+            userInfo: Unmanaged.passUnretained(self).toOpaque()
+        )
+        guard let eventTap else { return }
+        source = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, eventTap, 0)
+        if let source { CFRunLoopAddSource(CFRunLoopGetMain(), source, .commonModes) }
+        CGEvent.tapEnable(tap: eventTap, enable: true)
+    }
+
+    private func handle(type: CGEventType, event: CGEvent) {
+        if type == .tapDisabledByTimeout || type == .tapDisabledByUserInput {
+            if let eventTap { CGEvent.tapEnable(tap: eventTap, enable: true) }
+            return
+        }
+
+        guard SettingsStore.shared.enabled, SettingsStore.shared.aeroSnapEnabled else {
             cancel()
             return
         }
 
+        let point = event.location
+        switch type {
+        case .leftMouseDown:
+            guard event.getIntegerValueField(.mouseEventClickState) == 1,
+                  let window = window(at: point),
+                  let windowFrame = frame(window),
+                  isTitleBar(point, window: window, frame: windowFrame),
+                  isResizable(window) else {
+                cancel()
+                return
+            }
+            begin(window: window, at: point)
+
+        case .leftMouseDragged:
+            drag(to: point)
+
+        case .leftMouseUp:
+            finish(at: point)
+
+        default:
+            break
+        }
+    }
+
+    private func begin(window: AXUIElement, at point: CGPoint) {
+        guard let current = frame(window) else { return }
         let id = key(window)
-        let restore = restoreFrames[id]
         session = Session(
             window: window,
             key: id,
             mouseDown: point,
             frameAtMouseDown: current,
-            restoreFrame: restore,
+            restoreFrame: restoreFrames[id],
             restoredDuringDrag: false
         )
     }
 
-    func drag(to point: CGPoint) {
-        guard SettingsStore.shared.aeroSnapEnabled, var active = session else {
+    private func drag(to point: CGPoint) {
+        guard var active = session else {
             preview.hide()
             return
         }
@@ -80,18 +161,16 @@ final class AeroSnapManager {
         preview.show(axFrame: target.frame)
     }
 
-    func finish(at point: CGPoint) {
+    private func finish(at point: CGPoint) {
         defer {
             preview.hide()
             session = nil
         }
-        guard SettingsStore.shared.aeroSnapEnabled,
-              let active = session,
+        guard let active = session,
               let target = snapTarget(at: point) else { return }
 
         if restoreFrames[active.key] == nil {
-            if active.restoredDuringDrag,
-               let current = frame(active.window) {
+            if active.restoredDuringDrag, let current = frame(active.window) {
                 restoreFrames[active.key] = current
             } else if let original = active.restoreFrame {
                 restoreFrames[active.key] = original
@@ -104,7 +183,7 @@ final class AeroSnapManager {
         _ = AXUIElementPerformAction(active.window, kAXRaiseAction as CFString)
     }
 
-    func cancel() {
+    private func cancel() {
         preview.hide()
         session = nil
     }
@@ -114,7 +193,7 @@ final class AeroSnapManager {
         let full = screen.full
         let visible = screen.visible
         let edge: CGFloat = 18
-        let cornerBand = min(max(90, visible.height * 0.20), 180)
+        let cornerBand = min(max(100, visible.height * 0.20), 180)
 
         let nearLeft = point.x <= full.minX + edge
         let nearRight = point.x >= full.maxX - edge
@@ -134,16 +213,25 @@ final class AeroSnapManager {
             return (.bottomRight, quarter(visible, left: false, top: false))
         }
         if nearLeft {
-            return (.leftHalf, CGRect(x: visible.minX, y: visible.minY, width: floor(visible.width / 2), height: visible.height))
+            return (.leftHalf, half(visible, left: true))
         }
         if nearRight {
-            let width = floor(visible.width / 2)
-            return (.rightHalf, CGRect(x: visible.maxX - width, y: visible.minY, width: width, height: visible.height))
+            return (.rightHalf, half(visible, left: false))
         }
         if nearTop {
             return (.maximize, visible)
         }
         return nil
+    }
+
+    private func half(_ visible: CGRect, left: Bool) -> CGRect {
+        let width = floor(visible.width / 2)
+        return CGRect(
+            x: left ? visible.minX : visible.maxX - width,
+            y: visible.minY,
+            width: width,
+            height: visible.height
+        )
     }
 
     private func quarter(_ visible: CGRect, left: Bool, top: Bool) -> CGRect {
@@ -155,6 +243,37 @@ final class AeroSnapManager {
             width: width,
             height: height
         )
+    }
+
+    private func window(at point: CGPoint) -> AXUIElement? {
+        var hit: AXUIElement?
+        guard AXUIElementCopyElementAtPosition(systemWide, Float(point.x), Float(point.y), &hit) == .success else { return nil }
+        var current = hit
+        for _ in 0..<12 {
+            guard let candidate = current else { return nil }
+            if string(candidate, kAXRoleAttribute) == (kAXWindowRole as String) { return candidate }
+            current = element(candidate, kAXParentAttribute)
+        }
+        return nil
+    }
+
+    private func isTitleBar(_ point: CGPoint, window: AXUIElement, frame rect: CGRect) -> Bool {
+        let titleHeight: CGFloat
+        if let zoom = element(window, kAXZoomButtonAttribute), let zoomFrame = frame(zoom) {
+            titleHeight = max(28, min(48, zoomFrame.maxY - rect.minY + 8))
+        } else {
+            titleHeight = 32
+        }
+
+        for attribute in [kAXCloseButtonAttribute, kAXMinimizeButtonAttribute, kAXZoomButtonAttribute] {
+            if let button = element(window, attribute),
+               let buttonFrame = frame(button),
+               buttonFrame.insetBy(dx: -4, dy: -4).contains(point) {
+                return false
+            }
+        }
+
+        return CGRect(x: rect.minX, y: rect.minY, width: rect.width, height: min(titleHeight, rect.height)).contains(point)
     }
 
     private func screenInfo(forAXPoint point: CGPoint) -> (full: CGRect, visible: CGRect)? {
@@ -210,6 +329,20 @@ final class AeroSnapManager {
         _ = AXUIElementSetAttributeValue(window, kAXPositionAttribute as CFString, pointValue)
         _ = AXUIElementSetAttributeValue(window, kAXSizeAttribute as CFString, sizeValue)
         _ = AXUIElementSetAttributeValue(window, kAXPositionAttribute as CFString, pointValue)
+    }
+
+    private func element(_ source: AXUIElement, _ attribute: String) -> AXUIElement? {
+        var value: CFTypeRef?
+        guard AXUIElementCopyAttributeValue(source, attribute as CFString, &value) == .success,
+              let value,
+              CFGetTypeID(value) == AXUIElementGetTypeID() else { return nil }
+        return unsafeBitCast(value, to: AXUIElement.self)
+    }
+
+    private func string(_ source: AXUIElement, _ attribute: String) -> String? {
+        var value: CFTypeRef?
+        guard AXUIElementCopyAttributeValue(source, attribute as CFString, &value) == .success else { return nil }
+        return value as? String
     }
 }
 
