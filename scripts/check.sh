@@ -35,7 +35,10 @@ if otool -L "$EXECUTABLE" | grep -E '^[[:space:]]+(/usr/local/|/opt/homebrew/|/U
   exit 1
 fi
 
-[[ "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$APP/Contents/Info.plist")" == "cloud.vasthosting.winmax" ]]
-[[ "$(/usr/libexec/PlistBuddy -c 'Print :LSMinimumSystemVersion' "$APP/Contents/Info.plist")" == "13.0" ]]
+PLIST="$APP/Contents/Info.plist"
+[[ "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$PLIST")" == "cloud.vasthosting.winmax" ]]
+[[ "$(/usr/libexec/PlistBuddy -c 'Print :LSMinimumSystemVersion' "$PLIST")" == "13.0" ]]
+[[ "$(/usr/libexec/PlistBuddy -c 'Print :LSUIElement' "$PLIST")" == "true" ]]
+[[ "$(/usr/libexec/PlistBuddy -c 'Print :LSMultipleInstancesProhibited' "$PLIST")" == "true" ]]
 
 echo "All checks passed. Universal architectures: $ARCHS"
