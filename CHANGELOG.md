@@ -12,10 +12,12 @@ All notable WinMax changes are recorded here.
 - Restore-on-title-bar-drag behavior for WinMax-maximized windows.
 - Existing native-fullscreen recovery before desktop maximize.
 - Multi-display visible-frame handling.
-- Vast Hosting-branded settings/onboarding UI.
+- Vast Hosting-branded settings interface.
+- Dedicated first-run setup wizard with an Accessibility permission walkthrough.
+- Branded drag-to-Applications DMG installer experience.
 - Accessibility permission status and onboarding.
 - Launch-at-login support.
-- Menu-bar controls.
+- Menu-bar controls, including an option to run setup again.
 - Local rotating diagnostics logs.
 - Universal Apple Silicon + Intel builds.
 - DMG/ZIP packaging and SHA-256 checksums.
