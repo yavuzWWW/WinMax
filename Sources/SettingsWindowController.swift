@@ -21,11 +21,12 @@ final class SettingsWindowController: NSWindowController {
     private let greenSwitch = NSSwitch(frame: .zero)
     private let titleSwitch = NSSwitch(frame: .zero)
     private let shortcutSwitch = NSSwitch(frame: .zero)
+    private let aeroSnapSwitch = NSSwitch(frame: .zero)
     private let loginSwitch = NSSwitch(frame: .zero)
 
     init() {
         let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 720, height: 610),
+            contentRect: NSRect(x: 0, y: 0, width: 720, height: 660),
             styleMask: [.titled, .closable, .miniaturizable],
             backing: .buffered,
             defer: false
@@ -88,7 +89,7 @@ final class SettingsWindowController: NSWindowController {
         icon.contentTintColor = Brand.accent
         icon.translatesAutoresizingMaskIntoConstraints = false
         let title = label("WinMax", 29, .bold, Brand.text)
-        let subtitle = label("Windows-style maximize for macOS", 13, .medium, Brand.secondary)
+        let subtitle = label("Windows-style window control for macOS", 13, .medium, Brand.secondary)
         let brand = label("VAST HOSTING", 10, .bold, Brand.accent)
         [icon, title, subtitle, brand].forEach(view.addSubview)
         NSLayoutConstraint.activate([
@@ -120,13 +121,14 @@ final class SettingsWindowController: NSWindowController {
     }
 
     private func controlsCard() -> NSView {
-        let card = CardView(); card.heightAnchor.constraint(equalToConstant: 205).isActive = true
+        let card = CardView(); card.heightAnchor.constraint(equalToConstant: 245).isActive = true
         let heading = section("WINDOW CONTROL")
         let rows = NSStackView(); rows.orientation = .vertical; rows.spacing = 13; rows.translatesAutoresizingMaskIntoConstraints = false
         rows.addArrangedSubview(toggleRow("WinMax enabled", "Pause all overrides without quitting.", enabledSwitch, #selector(toggleEnabled)))
         rows.addArrangedSubview(toggleRow("Green button = maximize", "Stay on the desktop instead of creating a fullscreen Space.", greenSwitch, #selector(toggleGreen)))
         rows.addArrangedSubview(toggleRow("Double-click title bar", "Maximize or restore like Windows.", titleSwitch, #selector(toggleTitle)))
         rows.addArrangedSubview(toggleRow("Override ⌃⌘F", "Use desktop maximize instead of native fullscreen.", shortcutSwitch, #selector(toggleShortcut)))
+        rows.addArrangedSubview(toggleRow("Windows-style screen snapping", "Drag to edges/corners for halves, quarters, maximize and live preview.", aeroSnapSwitch, #selector(toggleAeroSnap)))
         card.addSubview(heading); card.addSubview(rows)
         NSLayoutConstraint.activate([
             heading.leadingAnchor.constraint(equalTo: card.leadingAnchor, constant: 20), heading.topAnchor.constraint(equalTo: card.topAnchor, constant: 15),
@@ -206,11 +208,14 @@ final class SettingsWindowController: NSWindowController {
             statusDetail.stringValue = "Window overrides are disabled. Your settings are preserved."; permissionButton.title = "Accessibility"
         } else {
             statusDot.layer?.backgroundColor = Brand.accent.cgColor; statusTitle.stringValue = "WinMax is active"
-            statusDetail.stringValue = "Green-button fullscreen is replaced with normal desktop maximize."; permissionButton.title = "Accessibility"
+            statusDetail.stringValue = "Windows-style maximize and screen snapping are active."; permissionButton.title = "Accessibility"
             settings.hasCompletedOnboarding = true
         }
-        enabledSwitch.state = settings.enabled ? .on : .off; greenSwitch.state = settings.overrideGreenButton ? .on : .off
-        titleSwitch.state = settings.titleBarDoubleClick ? .on : .off; shortcutSwitch.state = settings.overrideFullscreenShortcut ? .on : .off
+        enabledSwitch.state = settings.enabled ? .on : .off
+        greenSwitch.state = settings.overrideGreenButton ? .on : .off
+        titleSwitch.state = settings.titleBarDoubleClick ? .on : .off
+        shortcutSwitch.state = settings.overrideFullscreenShortcut ? .on : .off
+        aeroSnapSwitch.state = settings.aeroSnapEnabled ? .on : .off
         loginSwitch.state = LaunchAtLoginManager.shared.isEnabled ? .on : .off
     }
 
@@ -223,6 +228,7 @@ final class SettingsWindowController: NSWindowController {
     @objc private func toggleGreen() { settings.overrideGreenButton = greenSwitch.state == .on }
     @objc private func toggleTitle() { settings.titleBarDoubleClick = titleSwitch.state == .on }
     @objc private func toggleShortcut() { settings.overrideFullscreenShortcut = shortcutSwitch.state == .on }
+    @objc private func toggleAeroSnap() { settings.aeroSnapEnabled = aeroSnapSwitch.state == .on }
     @objc private func toggleLogin() {
         do { try LaunchAtLoginManager.shared.setEnabled(loginSwitch.state == .on) }
         catch { loginSwitch.state = LaunchAtLoginManager.shared.isEnabled ? .on : .off; showError("Could not change login setting", error.localizedDescription) }
