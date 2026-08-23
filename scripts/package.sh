@@ -2,9 +2,13 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-"$ROOT/scripts/build.sh"
+if [[ "${WINMAX_SKIP_BUILD:-0}" != "1" ]]; then
+  "$ROOT/scripts/build.sh"
+fi
 
 APP="$ROOT/build/WinMax.app"
+[[ -d "$APP" ]] || { echo "WinMax.app not found. Build the app first." >&2; exit 1; }
+
 DIST="$ROOT/dist"
 STAGE="$ROOT/build/dmg"
 WORK="$ROOT/build/dmg-work"
