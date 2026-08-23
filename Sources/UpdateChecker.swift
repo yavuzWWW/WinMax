@@ -51,7 +51,7 @@ final class UpdateChecker {
                 do {
                     let release = try JSONDecoder().decode(Release.self, from: data)
                     let latest = release.tagName.trimmingCharacters(in: CharacterSet(charactersIn: "vV"))
-                    if Self.compareVersions(latest, WinMaxProduct.version) == .orderedDescending {
+                    if WinMaxVersioning.compare(latest, WinMaxProduct.version) == .orderedDescending {
                         self.presentUpdate(latest: latest, url: release.htmlURL, window: window)
                     } else {
                         self.presentCurrent(window: window)
@@ -111,18 +111,5 @@ final class UpdateChecker {
         } else {
             completion?(alert.runModal())
         }
-    }
-
-    private static func compareVersions(_ lhs: String, _ rhs: String) -> ComparisonResult {
-        let left = lhs.split(separator: ".").map { Int($0) ?? 0 }
-        let right = rhs.split(separator: ".").map { Int($0) ?? 0 }
-        let count = max(left.count, right.count)
-        for index in 0..<count {
-            let l = index < left.count ? left[index] : 0
-            let r = index < right.count ? right[index] : 0
-            if l < r { return .orderedAscending }
-            if l > r { return .orderedDescending }
-        }
-        return .orderedSame
     }
 }
