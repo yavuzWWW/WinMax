@@ -26,7 +26,7 @@ final class SettingsWindowController: NSWindowController {
     private let aeroSnapSwitch = NSSwitch(frame: .zero)
     private let menuVaultSwitch = NSSwitch(frame: .zero)
     private let loginSwitch = NSSwitch(frame: .zero)
-    private lazy var aboutWindowController = AboutWindowController()
+    private let aboutWindowController = AboutWindowController.shared
 
     init() {
         let window = NSWindow(
