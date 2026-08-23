@@ -7,6 +7,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusItemLabel: NSMenuItem!
     private var settingsWindowController: SettingsWindowController!
     private var onboardingWindowController: OnboardingWindowController!
+    private var aboutWindowController: AboutWindowController!
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
@@ -14,6 +15,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         settingsWindowController = SettingsWindowController()
         onboardingWindowController = OnboardingWindowController()
+        aboutWindowController = AboutWindowController()
         setupMenuBar()
 
         WindowController.shared.start()
@@ -104,8 +106,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let logs = NSMenuItem(title: "Open Debug Logs", action: #selector(openLogs), keyEquivalent: "")
         logs.target = self
         menu.addItem(logs)
-        menu.addItem(.separator())
 
+        menu.addItem(.separator())
+        let updates = NSMenuItem(title: "Check for Updates…", action: #selector(checkForUpdates), keyEquivalent: "")
+        updates.target = self
+        menu.addItem(updates)
+
+        let about = NSMenuItem(title: "About WinMax", action: #selector(openAbout), keyEquivalent: "")
+        about.target = self
+        menu.addItem(about)
+
+        menu.addItem(.separator())
         let quit = NSMenuItem(title: "Quit WinMax", action: #selector(quitApp), keyEquivalent: "q")
         quit.target = self
         menu.addItem(quit)
@@ -141,6 +152,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     @objc private func openOnboarding() {
         onboardingWindowController.show()
+    }
+
+    @objc private func openAbout() {
+        aboutWindowController.show()
+    }
+
+    @objc private func checkForUpdates() {
+        UpdateChecker.shared.checkForUpdates(presenting: settingsWindowController.window)
     }
 
     @objc private func toggleEnabled() {
