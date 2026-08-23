@@ -1,0 +1,30 @@
+name: Feature request
+description: Suggest a focused improvement to WinMax
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping improve WinMax. Keep requests focused on lightweight, Windows-style window management.
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What macOS window behavior are you trying to improve?
+    validations:
+      required: true
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed behavior
+      description: Describe the behavior you would expect from WinMax.
+    validations:
+      required: true
+  - type: input
+    id: macos
+    attributes:
+      label: macOS version
+      placeholder: e.g. macOS 15.6
+    validations:
+      required: true

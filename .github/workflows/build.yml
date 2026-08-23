@@ -1,0 +1,31 @@
+name: Build
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  macos:
+    runs-on: macos-15
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build and validate
+        run: ./scripts/check.sh
+      - name: Package test artifact
+        run: ./scripts/package.sh
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: WinMax-${{ github.sha }}
+          path: dist/
+          if-no-files-found: error
+          retention-days: 14

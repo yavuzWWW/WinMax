@@ -1,0 +1,142 @@
+import Cocoa
+import ApplicationServices
+
+final class AppDelegate: NSObject, NSApplicationDelegate {
+    private var statusItem: NSStatusItem!
+    private var enabledItem: NSMenuItem!
+    private var statusItemLabel: NSMenuItem!
+    private var settingsWindowController: SettingsWindowController!
+
+    func applicationDidFinishLaunching(_ notification: Notification) {
+        NSApp.setActivationPolicy(.accessory)
+        WinMaxLogger.shared.info("Application launched")
+
+        settingsWindowController = SettingsWindowController()
+        setupMenuBar()
+        WindowController.shared.start()
+
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(refreshMenu),
+            name: .winMaxSettingsChanged,
+            object: nil
+        )
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(refreshMenu),
+            name: .winMaxRuntimeStateChanged,
+            object: nil
+        )
+
+        let settings = SettingsStore.shared
+        if !settings.hasCompletedOnboarding || settings.showWindowOnLaunch || !AXIsProcessTrusted() {
+            DispatchQueue.main.async { [weak self] in self?.settingsWindowController.show() }
+        }
+        refreshMenu()
+    }
+
+    func applicationWillTerminate(_ notification: Notification) {
+        WindowController.shared.stop()
+        WinMaxLogger.shared.info("Application terminating")
+    }
+
+    private func setupMenuBar() {
+        statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
+        if let image = NSImage(systemSymbolName: "rectangle.inset.filled", accessibilityDescription: "WinMax") {
+            image.isTemplate = true
+            statusItem.button?.image = image
+        } else {
+            statusItem.button?.title = "W"
+        }
+        statusItem.button?.toolTip = "WinMax"
+
+        let menu = NSMenu()
+
+        let open = NSMenuItem(title: "Open WinMax", action: #selector(openSettings), keyEquivalent: ",")
+        open.target = self
+        menu.addItem(open)
+
+        statusItemLabel = NSMenuItem(title: "Status", action: nil, keyEquivalent: "")
+        statusItemLabel.isEnabled = false
+        menu.addItem(statusItemLabel)
+        menu.addItem(.separator())
+
+        enabledItem = NSMenuItem(title: "Enabled", action: #selector(toggleEnabled), keyEquivalent: "")
+        enabledItem.target = self
+        menu.addItem(enabledItem)
+
+        let maximize = NSMenuItem(title: "Maximize / Restore Front Window", action: #selector(toggleFrontWindow), keyEquivalent: "")
+        maximize.target = self
+        menu.addItem(maximize)
+
+        let restore = NSMenuItem(title: "Restore Front Window", action: #selector(restoreFrontWindow), keyEquivalent: "")
+        restore.target = self
+        menu.addItem(restore)
+
+        menu.addItem(.separator())
+
+        let permissions = NSMenuItem(title: "Accessibility Settings…", action: #selector(openAccessibility), keyEquivalent: "")
+        permissions.target = self
+        menu.addItem(permissions)
+
+        let logs = NSMenuItem(title: "Open Debug Logs", action: #selector(openLogs), keyEquivalent: "")
+        logs.target = self
+        menu.addItem(logs)
+
+        menu.addItem(.separator())
+
+        let quit = NSMenuItem(title: "Quit WinMax", action: #selector(quitApp), keyEquivalent: "q")
+        quit.target = self
+        menu.addItem(quit)
+
+        statusItem.menu = menu
+    }
+
+    @objc private func refreshMenu() {
+        let settings = SettingsStore.shared
+        enabledItem?.state = settings.enabled ? .on : .off
+
+        if !AXIsProcessTrusted() {
+            statusItemLabel?.title = "● Accessibility needed"
+        } else if !WindowController.shared.isEventTapInstalled {
+            statusItemLabel?.title = "● Starting…"
+        } else if !settings.enabled {
+            statusItemLabel?.title = "● Paused"
+        } else {
+            statusItemLabel?.title = "● Active"
+        }
+    }
+
+    @objc private func openSettings() {
+        settingsWindowController.show()
+    }
+
+    @objc private func toggleEnabled() {
+        SettingsStore.shared.enabled.toggle()
+        WinMaxLogger.shared.info("Enabled toggled from menu: \(SettingsStore.shared.enabled)")
+    }
+
+    @objc private func toggleFrontWindow() {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.12) {
+            WindowController.shared.toggleFrontmostWindow()
+        }
+    }
+
+    @objc private func restoreFrontWindow() {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.12) {
+            WindowController.shared.restoreFrontmostWindow()
+        }
+    }
+
+    @objc private func openAccessibility() {
+        WindowController.shared.openAccessibilitySettings()
+    }
+
+    @objc private func openLogs() {
+        NSWorkspace.shared.open(WinMaxLogger.shared.logDirectory)
+    }
+
+    @objc private func quitApp() {
+        NSApp.terminate(nil)
+    }
+}
