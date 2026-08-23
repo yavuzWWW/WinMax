@@ -1,0 +1,175 @@
+name: Finalize WinMax v1.1.0
+
+on:
+  pull_request:
+    branches: ["main"]
+    paths:
+      - ".github/workflows/finalize-v110-pr.yml"
+
+permissions:
+  contents: write
+
+env:
+  RELEASE_TAG: v1.1.0
+  TARGET_SHA: 5537be433c8358efe86868ec657f567a1e5edb4b
+  WINMAX_VERSION: 1.1.0
+  WINMAX_BUILD: 110
+  MACOS_CERTIFICATE_BASE64: ${{ secrets.MACOS_CERTIFICATE_BASE64 }}
+  MACOS_CERTIFICATE_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
+  MACOS_KEYCHAIN_PASSWORD: ${{ secrets.MACOS_KEYCHAIN_PASSWORD }}
+  APPLE_ID: ${{ secrets.APPLE_ID }}
+  APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+  APPLE_APP_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
+
+jobs:
+  finalize:
+    runs-on: macos-15
+    timeout-minutes: 35
+    steps:
+      - name: Checkout tagged release source
+        uses: actions/checkout@v5
+        with:
+          ref: v1.1.0
+          fetch-depth: 0
+
+      - name: Validate immutable release target
+        run: |
+          set -euo pipefail
+          [[ "$(git rev-list -n 1 "$RELEASE_TAG")" == "$TARGET_SHA" ]]
+          [[ "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' Info.plist)" == "$WINMAX_VERSION" ]]
+          [[ "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' Info.plist)" == "$WINMAX_BUILD" ]]
+          echo "Validated $RELEASE_TAG -> $TARGET_SHA"
+
+      - name: Import Developer ID certificate
+        if: env.MACOS_CERTIFICATE_BASE64 != ''
+        run: |
+          set -euo pipefail
+          CERT_PATH="$RUNNER_TEMP/certificate.p12"
+          KEYCHAIN_PATH="$RUNNER_TEMP/winmax.keychain-db"
+          printf '%s' "$MACOS_CERTIFICATE_BASE64" | base64 --decode > "$CERT_PATH"
+          security create-keychain -p "$MACOS_KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+          security unlock-keychain -p "$MACOS_KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security import "$CERT_PATH" -P "$MACOS_CERTIFICATE_PASSWORD" -A -t cert -f pkcs12 -k "$KEYCHAIN_PATH"
+          security list-keychain -d user -s "$KEYCHAIN_PATH" login.keychain-db
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$MACOS_KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          IDENTITY="$(security find-identity -v -p codesigning "$KEYCHAIN_PATH" | sed -n 's/.*"\(Developer ID Application:.*\)"/\1/p' | head -1)"
+          [[ -n "$IDENTITY" ]]
+          echo "CODE_SIGN_IDENTITY=$IDENTITY" >> "$GITHUB_ENV"
+          echo 'SIGNING_MODE=Developer ID signed' >> "$GITHUB_ENV"
+
+      - name: Use ad-hoc signing when Developer ID is unavailable
+        if: env.MACOS_CERTIFICATE_BASE64 == ''
+        run: |
+          echo 'CODE_SIGN_IDENTITY=-' >> "$GITHUB_ENV"
+          echo 'SIGNING_MODE=ad-hoc signed (not Apple notarized)' >> "$GITHUB_ENV"
+
+      - name: Build and run production validation
+        run: ./scripts/check.sh
+
+      - name: Notarize application
+        if: env.MACOS_CERTIFICATE_BASE64 != '' && env.APPLE_ID != '' && env.APPLE_TEAM_ID != '' && env.APPLE_APP_PASSWORD != ''
+        run: |
+          set -euo pipefail
+          ditto -c -k --keepParent build/WinMax.app "$RUNNER_TEMP/WinMax-notary.zip"
+          xcrun notarytool submit "$RUNNER_TEMP/WinMax-notary.zip" \
+            --apple-id "$APPLE_ID" \
+            --team-id "$APPLE_TEAM_ID" \
+            --password "$APPLE_APP_PASSWORD" \
+            --wait
+          xcrun stapler staple build/WinMax.app
+          xcrun stapler validate build/WinMax.app
+          echo 'SIGNING_MODE=Developer ID signed + Apple notarized' >> "$GITHUB_ENV"
+
+      - name: Package release
+        run: WINMAX_SKIP_BUILD=1 ./scripts/package.sh
+
+      - name: Notarize DMG
+        if: env.MACOS_CERTIFICATE_BASE64 != '' && env.APPLE_ID != '' && env.APPLE_TEAM_ID != '' && env.APPLE_APP_PASSWORD != ''
+        run: |
+          set -euo pipefail
+          xcrun notarytool submit "dist/WinMax-$WINMAX_VERSION.dmg" \
+            --apple-id "$APPLE_ID" \
+            --team-id "$APPLE_TEAM_ID" \
+            --password "$APPLE_APP_PASSWORD" \
+            --wait
+          xcrun stapler staple "dist/WinMax-$WINMAX_VERSION.dmg"
+          xcrun stapler validate "dist/WinMax-$WINMAX_VERSION.dmg"
+          shasum -a 256 "dist/WinMax-$WINMAX_VERSION.dmg" "dist/WinMax-$WINMAX_VERSION.zip" > dist/SHA256SUMS.txt
+          (cd dist && shasum -a 256 -c SHA256SUMS.txt)
+
+      - name: Publish or replace public GitHub Release assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          cat > "$RUNNER_TEMP/release-notes.md" <<EOF
+          # WinMax 1.1.0
+
+          A production-focused release that expands WinMax into a native Windows-style desktop control layer for macOS.
+
+          ## Added
+          - Aero Snap: left/right halves, four quarter-screen corners and top-edge maximize.
+          - Live Snap preview with shared maximize/Snap restore state.
+          - Menu Vault: searchable access to Accessibility-exposed menu-bar status items.
+          - Dedicated Menu Vault button and Control + Option + Command + V shortcut.
+          - Expanded Settings/onboarding, diagnostics and single-instance protection.
+
+          ## Production hardening
+          - Universal Apple Silicon + Intel validation.
+          - Swift warnings treated as build failures.
+          - Snap geometry regression tests including multi-monitor edge cases.
+          - DMG/ZIP/signature/checksum validation.
+          - No telemetry, no Screen Recording requirement and no external runtime dependencies.
+
+          **Signing:** $SIGNING_MODE
+
+          See CHANGELOG.md for the full technical change list.
+          EOF
+
+          if gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release upload "$RELEASE_TAG" \
+              "dist/WinMax-$WINMAX_VERSION.dmg" \
+              "dist/WinMax-$WINMAX_VERSION.zip" \
+              dist/SHA256SUMS.txt \
+              --repo "$GITHUB_REPOSITORY" --clobber
+            gh release edit "$RELEASE_TAG" \
+              --repo "$GITHUB_REPOSITORY" \
+              --title "WinMax 1.1.0" \
+              --notes-file "$RUNNER_TEMP/release-notes.md" \
+              --draft=false --prerelease=false
+          else
+            gh release create "$RELEASE_TAG" \
+              "dist/WinMax-$WINMAX_VERSION.dmg" \
+              "dist/WinMax-$WINMAX_VERSION.zip" \
+              dist/SHA256SUMS.txt \
+              --repo "$GITHUB_REPOSITORY" \
+              --title "WinMax 1.1.0" \
+              --notes-file "$RUNNER_TEMP/release-notes.md" \
+              --verify-tag
+          fi
+
+      - name: Verify public release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          JSON="$(gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --json url,isDraft,isPrerelease,assets)"
+          [[ "$(jq -r '.isDraft' <<<"$JSON")" == "false" ]]
+          [[ "$(jq -r '.isPrerelease' <<<"$JSON")" == "false" ]]
+          NAMES="$(jq -r '.assets[].name' <<<"$JSON")"
+          grep -Fxq 'WinMax-1.1.0.dmg' <<<"$NAMES"
+          grep -Fxq 'WinMax-1.1.0.zip' <<<"$NAMES"
+          grep -Fxq 'SHA256SUMS.txt' <<<"$NAMES"
+          URL="$(jq -r '.url' <<<"$JSON")"
+          echo "WINMAX_RELEASE_VERIFIED=1"
+          echo "RELEASE_URL=$URL"
+          echo "SIGNING_MODE=$SIGNING_MODE"
+          printf 'ASSETS:\n%s\n' "$NAMES"
+
+      - name: Upload final release build for audit
+        uses: actions/upload-artifact@v4
+        with:
+          name: WinMax-1.1.0-final-release
+          path: dist/
+          if-no-files-found: error
