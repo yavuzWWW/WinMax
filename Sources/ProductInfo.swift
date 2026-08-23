@@ -7,6 +7,7 @@ enum WinMaxProduct {
     static let websiteURL = URL(string: "https://vasthosting.cloud")!
     static let repositoryURL = URL(string: "https://github.com/yavuzWWW/WinMax")!
     static let releasesURL = URL(string: "https://github.com/yavuzWWW/WinMax/releases")!
+    static let supportURL = URL(string: "https://github.com/yavuzWWW/WinMax/issues")!
     static let latestReleaseAPIURL = URL(string: "https://api.github.com/repos/yavuzWWW/WinMax/releases/latest")!
 
     static var version: String {
