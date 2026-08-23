@@ -5,6 +5,8 @@ enum LayoutShortcutCommand: Equatable {
     case rightHalf
     case maximize
     case restore
+    case previousDisplay
+    case nextDisplay
 }
 
 enum LayoutShortcut {
@@ -15,7 +17,18 @@ enum LayoutShortcut {
         command: Bool,
         shift: Bool
     ) -> LayoutShortcutCommand? {
-        guard control, option, command, !shift else { return nil }
+        guard control, option, command else { return nil }
+
+        if shift {
+            switch keyCode {
+            case 123:
+                return .previousDisplay
+            case 124:
+                return .nextDisplay
+            default:
+                return nil
+            }
+        }
 
         switch keyCode {
         case 123:
