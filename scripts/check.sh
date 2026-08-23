@@ -35,6 +35,14 @@ xcrun swiftc \
   -o "$BUILD/settings-profile-tests"
 "$BUILD/settings-profile-tests"
 
+xcrun swiftc \
+  -swift-version 5 \
+  -warnings-as-errors \
+  "$ROOT/Sources/LayoutShortcut.swift" \
+  "$ROOT/scripts/test-layout-shortcuts.swift" \
+  -o "$BUILD/layout-shortcut-tests"
+"$BUILD/layout-shortcut-tests"
+
 "$ROOT/scripts/build.sh"
 
 APP="$BUILD/WinMax.app"
