@@ -1,0 +1,33 @@
+name: Verify WinMax v1.0.1 Release
+
+on:
+  workflow_run:
+    workflows: ["Publish WinMax v1.0.1"]
+    types: [completed]
+
+permissions:
+  contents: write
+
+jobs:
+  verify:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify release assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          assets="$(gh release view v1.0.1 --repo "$GITHUB_REPOSITORY" --json assets --jq '.assets[].name')"
+          for required in WinMax-1.0.1.dmg WinMax-1.0.1.zip SHA256SUMS.txt; do
+            echo "$assets" | grep -Fx "$required" >/dev/null || { echo "Missing $required" >&2; exit 1; }
+          done
+          printf 'v1.0.1 verified\n' > RELEASE_STATUS_1_0_1
+      - name: Record verification
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add RELEASE_STATUS_1_0_1
+          git commit -m "chore: verify v1.0.1 release assets"
+          git push
