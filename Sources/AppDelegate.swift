@@ -6,12 +6,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var enabledItem: NSMenuItem!
     private var statusItemLabel: NSMenuItem!
     private var settingsWindowController: SettingsWindowController!
+    private var onboardingWindowController: OnboardingWindowController!
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
         WinMaxLogger.shared.info("Application launched")
 
         settingsWindowController = SettingsWindowController()
+        onboardingWindowController = OnboardingWindowController()
         setupMenuBar()
         WindowController.shared.start()
 
@@ -29,8 +31,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         )
 
         let settings = SettingsStore.shared
-        if !settings.hasCompletedOnboarding || settings.showWindowOnLaunch || !AXIsProcessTrusted() {
-            DispatchQueue.main.async { [weak self] in self?.settingsWindowController.show() }
+        DispatchQueue.main.async { [weak self] in
+            guard let self else { return }
+            if !settings.hasCompletedOnboarding {
+                self.onboardingWindowController.show()
+            } else if settings.showWindowOnLaunch || !AXIsProcessTrusted() {
+                self.settingsWindowController.show()
+            }
         }
         refreshMenu()
     }
@@ -55,6 +62,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let open = NSMenuItem(title: "Open WinMax", action: #selector(openSettings), keyEquivalent: ",")
         open.target = self
         menu.addItem(open)
+
+        let setup = NSMenuItem(title: "Run Setup Again…", action: #selector(openOnboarding), keyEquivalent: "")
+        setup.target = self
+        menu.addItem(setup)
 
         statusItemLabel = NSMenuItem(title: "Status", action: nil, keyEquivalent: "")
         statusItemLabel.isEnabled = false
@@ -109,6 +120,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     @objc private func openSettings() {
         settingsWindowController.show()
+    }
+
+    @objc private func openOnboarding() {
+        onboardingWindowController.show()
     }
 
     @objc private func toggleEnabled() {
