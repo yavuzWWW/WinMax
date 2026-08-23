@@ -43,6 +43,14 @@ xcrun swiftc \
   -o "$BUILD/layout-shortcut-tests"
 "$BUILD/layout-shortcut-tests"
 
+xcrun swiftc \
+  -swift-version 5 \
+  -warnings-as-errors \
+  "$ROOT/Sources/DisplayTransferGeometry.swift" \
+  "$ROOT/scripts/test-display-transfer.swift" \
+  -o "$BUILD/display-transfer-tests"
+"$BUILD/display-transfer-tests"
+
 "$ROOT/scripts/build.sh"
 
 APP="$BUILD/WinMax.app"
