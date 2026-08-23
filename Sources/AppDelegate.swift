@@ -16,6 +16,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         onboardingWindowController = OnboardingWindowController()
         setupMenuBar()
         WindowController.shared.start()
+        AeroSnapManager.shared.start()
 
         NotificationCenter.default.addObserver(
             self,
@@ -43,6 +44,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationWillTerminate(_ notification: Notification) {
+        AeroSnapManager.shared.stop()
         WindowController.shared.stop()
         WinMaxLogger.shared.info("Application terminating")
     }
