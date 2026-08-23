@@ -27,6 +27,14 @@ xcrun swiftc \
   -o "$BUILD/versioning-tests"
 "$BUILD/versioning-tests"
 
+xcrun swiftc \
+  -swift-version 5 \
+  -warnings-as-errors \
+  "$ROOT/Sources/SettingsProfile.swift" \
+  "$ROOT/scripts/test-settings-profile.swift" \
+  -o "$BUILD/settings-profile-tests"
+"$BUILD/settings-profile-tests"
+
 "$ROOT/scripts/build.sh"
 
 APP="$BUILD/WinMax.app"
