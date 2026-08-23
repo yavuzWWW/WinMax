@@ -98,6 +98,24 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         menu.addItem(restore)
 
         menu.addItem(.separator())
+        let settingsManagement = NSMenuItem(title: "Settings", action: nil, keyEquivalent: "")
+        let settingsSubmenu = NSMenu(title: "Settings")
+
+        let export = NSMenuItem(title: "Export Settings…", action: #selector(exportSettings), keyEquivalent: "")
+        export.target = self
+        settingsSubmenu.addItem(export)
+
+        let importItem = NSMenuItem(title: "Import Settings…", action: #selector(importSettings), keyEquivalent: "")
+        importItem.target = self
+        settingsSubmenu.addItem(importItem)
+        settingsSubmenu.addItem(.separator())
+
+        let reset = NSMenuItem(title: "Reset to Defaults…", action: #selector(resetSettings), keyEquivalent: "")
+        reset.target = self
+        settingsSubmenu.addItem(reset)
+        settingsManagement.submenu = settingsSubmenu
+        menu.addItem(settingsManagement)
+
         let permissions = NSMenuItem(title: "Accessibility Settings…", action: #selector(openAccessibility), keyEquivalent: "")
         permissions.target = self
         menu.addItem(permissions)
@@ -110,6 +128,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let updates = NSMenuItem(title: "Check for Updates…", action: #selector(checkForUpdates), keyEquivalent: "")
         updates.target = self
         menu.addItem(updates)
+
+        let support = NSMenuItem(title: "Support…", action: #selector(openSupport), keyEquivalent: "")
+        support.target = self
+        menu.addItem(support)
 
         let about = NSMenuItem(title: "About WinMax", action: #selector(openAbout), keyEquivalent: "")
         about.target = self
@@ -159,6 +181,22 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     @objc private func checkForUpdates() {
         UpdateChecker.shared.checkForUpdates(presenting: settingsWindowController.window)
+    }
+
+    @objc private func openSupport() {
+        NSWorkspace.shared.open(WinMaxProduct.supportURL)
+    }
+
+    @objc private func exportSettings() {
+        SettingsProfileController.shared.exportSettings(presenting: settingsWindowController.window)
+    }
+
+    @objc private func importSettings() {
+        SettingsProfileController.shared.importSettings(presenting: settingsWindowController.window)
+    }
+
+    @objc private func resetSettings() {
+        SettingsProfileController.shared.resetSettings(presenting: settingsWindowController.window)
     }
 
     @objc private func toggleEnabled() {
