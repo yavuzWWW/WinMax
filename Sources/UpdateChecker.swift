@@ -13,9 +13,18 @@ final class UpdateChecker {
         }
     }
 
+    private let session: URLSession
     private var requestInFlight = false
 
-    private init() {}
+    private init() {
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.httpCookieStorage = nil
+        configuration.urlCache = nil
+        configuration.requestCachePolicy = .reloadIgnoringLocalCacheData
+        configuration.timeoutIntervalForRequest = 12
+        configuration.timeoutIntervalForResource = 15
+        session = URLSession(configuration: configuration)
+    }
 
     func checkForUpdates(presenting window: NSWindow? = nil) {
         guard !requestInFlight else { return }
@@ -27,7 +36,7 @@ final class UpdateChecker {
         request.setValue("WinMax/\(WinMaxProduct.version)", forHTTPHeaderField: "User-Agent")
         request.setValue("application/vnd.github+json", forHTTPHeaderField: "Accept")
 
-        URLSession.shared.dataTask(with: request) { [weak self] data, response, error in
+        session.dataTask(with: request) { [weak self] data, response, error in
             DispatchQueue.main.async {
                 guard let self else { return }
                 self.requestInFlight = false
