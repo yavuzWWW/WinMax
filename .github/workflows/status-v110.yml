@@ -1,0 +1,39 @@
+name: Inspect WinMax v1.1.0 Release Jobs
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - ".github/workflows/status-v110.yml"
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Inspect release-related workflow runs
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          DIRECT="$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/publish-v110-direct.yml/runs?per_page=5")"
+          VERIFY="$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/verify-v110-release.yml/runs?per_page=5")"
+          TAGGER="$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/publish-v110.yml/runs?per_page=5")"
+
+          direct_line="$(jq -r '.workflow_runs[0] | "id=\(.id) status=\(.status) conclusion=\(.conclusion // \"pending\") url=\(.html_url)"' <<<"$DIRECT")"
+          verify_line="$(jq -r '.workflow_runs[0] | "id=\(.id) status=\(.status) conclusion=\(.conclusion // \"pending\") url=\(.html_url)"' <<<"$VERIFY")"
+          tagger_line="$(jq -r '.workflow_runs[0] | "id=\(.id) status=\(.status) conclusion=\(.conclusion // \"pending\") url=\(.html_url)"' <<<"$TAGGER")"
+
+          TEXT="Direct publisher: $direct_line
+Release verifier: $verify_line
+Tag gate: $tagger_line
+"
+          CONTENT="$(printf '%s' "$TEXT" | base64 -w 0)"
+          gh api \
+            --method PUT \
+            "repos/$GITHUB_REPOSITORY/contents/RELEASE_ACTIONS_STATUS_1_1_0" \
+            -f message='chore: record WinMax 1.1.0 release workflow status' \
+            -f content="$CONTENT" \
+            -f branch=main
