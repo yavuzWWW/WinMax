@@ -8,21 +8,47 @@ try? FileManager.default.removeItem(at: outputURL)
 try FileManager.default.createDirectory(at: outputURL, withIntermediateDirectories: true)
 
 func render(size: Int, name: String) throws {
-    let image = NSImage(size: NSSize(width: size, height: size))
-    image.lockFocus()
-    defer { image.unlockFocus() }
+    guard let bitmap = NSBitmapImageRep(
+        bitmapDataPlanes: nil,
+        pixelsWide: size,
+        pixelsHigh: size,
+        bitsPerSample: 8,
+        samplesPerPixel: 4,
+        hasAlpha: true,
+        isPlanar: false,
+        colorSpaceName: .deviceRGB,
+        bytesPerRow: 0,
+        bitsPerPixel: 0
+    ) else {
+        throw NSError(domain: "WinMaxIcon", code: 1)
+    }
+
+    bitmap.size = NSSize(width: size, height: size)
+    guard let context = NSGraphicsContext(bitmapImageRep: bitmap) else {
+        throw NSError(domain: "WinMaxIcon", code: 2)
+    }
+
+    NSGraphicsContext.saveGraphicsState()
+    NSGraphicsContext.current = context
 
     let bounds = NSRect(x: 0, y: 0, width: size, height: size)
+    NSColor.clear.setFill()
+    bounds.fill()
+
     NSColor(calibratedWhite: 0.055, alpha: 1).setFill()
-    NSBezierPath(roundedRect: bounds.insetBy(dx: CGFloat(size) * 0.06, dy: CGFloat(size) * 0.06),
-                 xRadius: CGFloat(size) * 0.22,
-                 yRadius: CGFloat(size) * 0.22).fill()
+    NSBezierPath(
+        roundedRect: bounds.insetBy(dx: CGFloat(size) * 0.06, dy: CGFloat(size) * 0.06),
+        xRadius: CGFloat(size) * 0.22,
+        yRadius: CGFloat(size) * 0.22
+    ).fill()
 
     let accent = NSColor(calibratedRed: 0.27, green: 0.83, blue: 0.74, alpha: 1)
     accent.setStroke()
-    let outer = NSBezierPath(roundedRect: bounds.insetBy(dx: CGFloat(size) * 0.22, dy: CGFloat(size) * 0.25),
-                             xRadius: CGFloat(size) * 0.06,
-                             yRadius: CGFloat(size) * 0.06)
+    let outer = NSBezierPath(
+        roundedRect: bounds.insetBy(dx: CGFloat(size) * 0.22, dy: CGFloat(size) * 0.25),
+        xRadius: CGFloat(size) * 0.06,
+        yRadius: CGFloat(size) * 0.06
+    )
     outer.lineWidth = max(2, CGFloat(size) * 0.045)
     outer.stroke()
 
@@ -39,14 +65,16 @@ func render(size: Int, name: String) throws {
         .foregroundColor: NSColor.white,
         .paragraphStyle: paragraph
     ]
-    let text = "W"
-    let textRect = NSRect(x: 0, y: CGFloat(size) * 0.26, width: CGFloat(size), height: CGFloat(size) * 0.3)
-    text.draw(in: textRect, withAttributes: attrs)
+    ("W" as NSString).draw(
+        in: NSRect(x: 0, y: CGFloat(size) * 0.26, width: CGFloat(size), height: CGFloat(size) * 0.3),
+        withAttributes: attrs
+    )
 
-    guard let tiff = image.tiffRepresentation,
-          let bitmap = NSBitmapImageRep(data: tiff),
-          let png = bitmap.representation(using: .png, properties: [:]) else {
-        throw NSError(domain: "WinMaxIcon", code: 1)
+    context.flushGraphics()
+    NSGraphicsContext.restoreGraphicsState()
+
+    guard let png = bitmap.representation(using: .png, properties: [:]) else {
+        throw NSError(domain: "WinMaxIcon", code: 3)
     }
     try png.write(to: outputURL.appendingPathComponent(name))
 }
