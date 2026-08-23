@@ -17,6 +17,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         setupMenuBar()
         WindowController.shared.start()
         AeroSnapManager.shared.start()
+        MenuVaultController.shared.start()
 
         NotificationCenter.default.addObserver(
             self,
@@ -44,6 +45,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationWillTerminate(_ notification: Notification) {
+        MenuVaultController.shared.stop()
         AeroSnapManager.shared.stop()
         WindowController.shared.stop()
         WinMaxLogger.shared.info("Application terminating")
@@ -64,6 +66,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let open = NSMenuItem(title: "Open WinMax", action: #selector(openSettings), keyEquivalent: ",")
         open.target = self
         menu.addItem(open)
+
+        let vault = NSMenuItem(title: "Open Menu Vault…", action: #selector(openMenuVault), keyEquivalent: "v")
+        vault.target = self
+        menu.addItem(vault)
 
         let setup = NSMenuItem(title: "Run Setup Again…", action: #selector(openOnboarding), keyEquivalent: "")
         setup.target = self
@@ -122,6 +128,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     @objc private func openSettings() {
         settingsWindowController.show()
+    }
+
+    @objc private func openMenuVault() {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.08) {
+            MenuVaultController.shared.show()
+        }
     }
 
     @objc private func openOnboarding() {
