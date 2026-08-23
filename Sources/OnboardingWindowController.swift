@@ -8,6 +8,7 @@ final class OnboardingWindowController: NSWindowController {
     private let secondaryButton = NSButton(frame: .zero)
     private let permissionStatus = NSTextField(labelWithString: "")
     private var step = 0
+    private var permissionTimer: Timer?
 
     init() {
         let window = NSWindow(
@@ -31,8 +32,13 @@ final class OnboardingWindowController: NSWindowController {
 
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
 
+    deinit {
+        permissionTimer?.invalidate()
+    }
+
     func show() {
         step = 0
+        stopPermissionWatch()
         renderStep()
         showWindow(nil)
         window?.makeKeyAndOrderFront(nil)
@@ -132,6 +138,8 @@ final class OnboardingWindowController: NSWindowController {
             view.removeFromSuperview()
         }
 
+        if step != 1 { stopPermissionWatch() }
+
         switch step {
         case 0:
             contentStack.addArrangedSubview(stepTitle("Make macOS windows behave the way you expect."))
@@ -150,10 +158,11 @@ final class OnboardingWindowController: NSWindowController {
             permissionStatus.translatesAutoresizingMaskIntoConstraints = false
             updatePermissionStatus()
             contentStack.addArrangedSubview(permissionStatus)
-            contentStack.addArrangedSubview(body("Click Open Settings, enable WinMax under Privacy & Security → Accessibility, then return here."))
+            contentStack.addArrangedSubview(body("Click Open Settings, enable WinMax under Privacy & Security → Accessibility, then return here. WinMax will detect the permission automatically."))
             secondaryButton.isHidden = false
             secondaryButton.title = "Back"
             primaryButton.title = AXIsProcessTrusted() ? "Continue" : "Open Settings"
+            startPermissionWatch()
 
         default:
             contentStack.addArrangedSubview(stepTitle("You're ready."))
@@ -168,6 +177,29 @@ final class OnboardingWindowController: NSWindowController {
         }
     }
 
+    private func startPermissionWatch() {
+        stopPermissionWatch()
+        permissionTimer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { [weak self] _ in
+            guard let self, self.step == 1 else { return }
+            let trusted = AXIsProcessTrusted()
+            self.updatePermissionStatus()
+            self.primaryButton.title = trusted ? "Continue" : "Open Settings"
+            if trusted {
+                self.stopPermissionWatch()
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) { [weak self] in
+                    guard let self, self.step == 1, AXIsProcessTrusted() else { return }
+                    self.step = 2
+                    self.renderStep()
+                }
+            }
+        }
+    }
+
+    private func stopPermissionWatch() {
+        permissionTimer?.invalidate()
+        permissionTimer = nil
+    }
+
     @objc private func primaryAction() {
         switch step {
         case 0:
@@ -180,10 +212,9 @@ final class OnboardingWindowController: NSWindowController {
             } else {
                 WindowController.shared.requestAccessibilityPrompt()
                 WindowController.shared.openAccessibilitySettings()
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) { [weak self] in
-                    self?.updatePermissionStatus()
-                    self?.primaryButton.title = AXIsProcessTrusted() ? "Continue" : "Open Settings"
-                }
+                updatePermissionStatus()
+                primaryButton.title = "Open Settings"
+                startPermissionWatch()
             }
         default:
             settings.enabled = true
@@ -191,6 +222,7 @@ final class OnboardingWindowController: NSWindowController {
             settings.titleBarDoubleClick = true
             settings.overrideFullscreenShortcut = true
             settings.hasCompletedOnboarding = true
+            stopPermissionWatch()
             window?.close()
             NotificationCenter.default.post(name: .winMaxSettingsChanged, object: nil)
         }
