@@ -17,6 +17,7 @@ SDK="$(xcrun --sdk macosx --show-sdk-path)"
 rm -rf "$APP" "$TEMP"
 mkdir -p "$MACOS" "$RESOURCES" "$TEMP"
 cp "$ROOT/Info.plist" "$CONTENTS/Info.plist"
+
 ICONSET="$TEMP/WinMax.iconset"
 xcrun swift "$ROOT/scripts/generate-icon.swift" "$ICONSET"
 iconutil -c icns "$ICONSET" -o "$RESOURCES/WinMax.icns"
@@ -30,6 +31,7 @@ for ARCH in arm64 x86_64; do
   echo "Building $ARCH…"
   xcrun swiftc \
     -swift-version 5 \
+    -warnings-as-errors \
     -O \
     -whole-module-optimization \
     -target "$ARCH-apple-macos13.0" \
@@ -55,6 +57,9 @@ fi
 
 codesign --verify --deep --strict --verbose=2 "$APP"
 ARCHS="$(lipo -archs "$MACOS/WinMax")"
-[[ "$ARCHS" == *arm64* && "$ARCHS" == *x86_64* ]] || { echo "Universal build verification failed: $ARCHS" >&2; exit 1; }
+[[ "$ARCHS" == *arm64* && "$ARCHS" == *x86_64* ]] || {
+  echo "Universal build verification failed: $ARCHS" >&2
+  exit 1
+}
 
 printf '\nBuilt WinMax %s (%s) [%s]\n%s\n' "$VERSION" "$BUILD_NUMBER" "$ARCHS" "$APP"
