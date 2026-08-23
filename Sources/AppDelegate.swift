@@ -97,6 +97,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         addLayoutItem("Right Half", action: #selector(layoutRight), shortcut: "⌃⌥⌘→", to: layoutMenu)
         addLayoutItem("Maximize", action: #selector(layoutMaximize), shortcut: "⌃⌥⌘↑", to: layoutMenu)
         addLayoutItem("Restore", action: #selector(layoutRestore), shortcut: "⌃⌥⌘↓", to: layoutMenu)
+        layoutMenu.addItem(.separator())
+        addLayoutItem("Previous Display", action: #selector(movePreviousDisplay), shortcut: "⇧⌃⌥⌘←", to: layoutMenu)
+        addLayoutItem("Next Display", action: #selector(moveNextDisplay), shortcut: "⇧⌃⌥⌘→", to: layoutMenu)
         layouts.submenu = layoutMenu
         menu.addItem(layouts)
 
@@ -156,9 +159,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func addLayoutItem(_ title: String, action: Selector, shortcut: String, to menu: NSMenu) {
-        let item = NSMenuItem(title: title, action: action, keyEquivalent: "")
+        let item = NSMenuItem(title: "\(title)    \(shortcut)", action: action, keyEquivalent: "")
         item.target = self
-        item.toolTip = shortcut
         menu.addItem(item)
     }
 
@@ -231,6 +233,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     @objc private func layoutRestore() {
         WindowLayoutCommandController.shared.restore()
+    }
+
+    @objc private func movePreviousDisplay() {
+        WindowLayoutCommandController.shared.moveToDisplay(.previous)
+    }
+
+    @objc private func moveNextDisplay() {
+        WindowLayoutCommandController.shared.moveToDisplay(.next)
     }
 
     @objc private func toggleEnabled() {
