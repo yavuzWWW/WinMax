@@ -20,7 +20,9 @@ Built by **[Vast Hosting](https://vasthosting.cloud)** · Native Swift/AppKit ·
 
 WinMax is a lightweight native macOS utility for people who prefer a traditional desktop workflow. It replaces the green-button fullscreen jump with normal maximize/restore, adds Windows-style edge snapping, and provides **Menu Vault** for searchable access to Accessibility-exposed menu-bar status items.
 
-WinMax does not replace WindowServer and does not use Electron, a webview, or runtime dependencies. It works through public macOS Accessibility/AppKit/CoreGraphics APIs and stays in the menu bar.
+WinMax is designed as a real desktop product rather than a collection of scripts: native onboarding and settings, a dedicated About experience, versioned releases, deterministic regression tests, Universal Intel/Apple Silicon builds, release checksums and an explicit user-initiated update check.
+
+WinMax does not replace WindowServer and does not use Electron, a webview, or third-party runtime dependencies. Window control is implemented through macOS Accessibility, AppKit and CoreGraphics APIs.
 
 ## Highlights
 
@@ -60,7 +62,17 @@ Menu Vault provides a searchable, scrollable view of **status items exposed thro
 - Scans off the main UI thread with bounded Accessibility timeouts.
 - Does not require Screen Recording.
 
-> **macOS limitation:** Apple does not provide a public API that guarantees access to every third-party or protected system status item. Menu Vault can only show items that the owning process exposes through `AXExtrasMenuBar`. This is intentionally safer than pretending unsupported items are controllable.
+> **macOS limitation:** Apple does not provide a public API that guarantees access to every third-party or protected system status item. Menu Vault can only show items that the owning process exposes through `AXExtrasMenuBar`.
+
+### Product experience
+
+- Native first-run onboarding and permission recovery.
+- Native Settings and diagnostics.
+- Dedicated **About WinMax** window with product/version information and official project links.
+- **Check for Updates…** compares the installed version against the latest official GitHub Release.
+- No background update polling and no automatic downloads.
+- Single-instance protection to reduce duplicate-app/TCC confusion.
+- Central product metadata and feature catalog ready for future product editions without paywalling current functionality.
 
 ## Install
 
@@ -84,6 +96,8 @@ Development/ad-hoc builds can require macOS's manual **Open** flow. A Developer 
 | Click Menu Vault status item | Open searchable status-item panel |
 | `Control + Option + Command + V` | Open/close Menu Vault globally |
 | WinMax menu → Window Control Enabled | Pause/resume window overrides |
+| WinMax menu → Check for Updates… | Check the latest official GitHub Release |
+| WinMax menu → About WinMax | Product/version information |
 | WinMax menu → Open WinMax | Settings and diagnostics |
 
 Every major behavior has its own switch in Settings. Pausing **Window Control** does not disable Menu Vault.
@@ -99,15 +113,17 @@ Fixed-size dialogs, protected system surfaces, games, custom title bars, and app
 
 ## Privacy & security
 
-WinMax is local-only:
+WinMax is privacy-first:
 
 - no analytics or telemetry
 - no advertising
 - no account system
-- no updater/network client
+- no background network polling
 - no Screen Recording requirement
 - no keystroke text logging
 - no window titles, document names, or Menu Vault labels written to logs
+
+The only current application network action is the explicit **Check for Updates…** command. It makes a single HTTPS request to GitHub's public Releases API for this repository and sends no window, Accessibility, Menu Vault, diagnostic or user-content data. WinMax does not automatically download or install updates.
 
 Accessibility is used only for window geometry/control and status-item discovery/activation. Debug logs stay in `~/Library/Logs/WinMax/` and rotate locally.
 
@@ -130,7 +146,7 @@ cd WinMax
 ./install.sh
 ```
 
-`./scripts/check.sh` performs the production validation used by CI: source parsing with warnings treated as errors, deterministic Snap geometry tests, Universal build, bundle checks, code-signature validation and external dynamic-dependency checks.
+`./scripts/check.sh` performs the production validation used by CI: source parsing with warnings treated as errors, deterministic Snap geometry tests, version-comparison regression tests, Universal build, bundle checks, code-signature validation and external dynamic-dependency checks.
 
 Package locally with:
 
@@ -149,6 +165,10 @@ Sources/
   AeroSnapManager.swift        Drag session + preview
   SnapGeometry.swift           Pure Snap target geometry
   MenuVaultController.swift    Status-item discovery and Vault UI
+  ProductInfo.swift            Product identity + feature metadata
+  Versioning.swift             Deterministic release version comparison
+  UpdateChecker.swift          Explicit GitHub Release update check
+  AboutWindowController.swift  Native About experience
   SettingsWindowController.swift
   OnboardingWindowController.swift
 scripts/
@@ -156,10 +176,17 @@ scripts/
   check.sh
   package.sh
   test-snap-geometry.swift
+  test-versioning.swift
 docs/
 ```
 
 See [Architecture](docs/ARCHITECTURE.md) for the full design.
+
+## Product direction
+
+The current project remains fully usable without a paid license. The internal product metadata is structured so future editions or optional premium capabilities can be introduced without scattering licensing checks through window-control code.
+
+The priority remains: a reliable, polished native macOS product first; commercial packaging and a dedicated website can be layered on top later.
 
 ## Contributing
 

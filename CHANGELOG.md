@@ -2,6 +2,36 @@
 
 All notable WinMax changes are recorded here.
 
+## Unreleased
+
+### Added
+
+- Centralized WinMax product metadata and stable feature identifiers for future product surfaces.
+- Native **About WinMax** window with version/build information and official project links.
+- User-initiated **Check for Updates…** flow backed by the official GitHub Releases API.
+- Dedicated Product section in Settings with About and update actions.
+- Versioned JSON settings profiles with export/import support.
+- Safe **Reset to Defaults** flow that preserves Accessibility permission, onboarding state and Launch at Login.
+- Official Support destination in the WinMax menu.
+- Deterministic version-comparison and settings-profile regression tests in the production validation gate.
+- Product architecture guidance covering future editions, licensing boundaries and website readiness.
+
+### Changed
+
+- Settings header/footer now use centralized WinMax/Vast Hosting product metadata.
+- About is handled by one shared window controller across Settings and the menu bar.
+- Settings files use an explicit schema version so future WinMax releases can migrate safely.
+- README and security documentation now describe the product/update experience explicitly.
+
+### Privacy and safety
+
+- Update checks are manual only; WinMax does not perform background update polling.
+- The update checker uses an ephemeral URL session with no persistent cookie or URL cache storage.
+- Update requests send no Accessibility data, window data, Menu Vault labels, diagnostics or user content.
+- Release links returned by the update API are accepted only for the official HTTPS `yavuzWWW/WinMax` GitHub release path.
+- Updates are not downloaded or installed automatically; WinMax only offers the official release page.
+- Imported settings files are restricted to JSON regular files with a small size limit and a supported schema version.
+
 ## 1.1.0 — 2026-08-23
 
 ### Added

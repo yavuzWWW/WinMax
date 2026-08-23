@@ -26,6 +26,7 @@ final class SettingsWindowController: NSWindowController {
     private let aeroSnapSwitch = NSSwitch(frame: .zero)
     private let menuVaultSwitch = NSSwitch(frame: .zero)
     private let loginSwitch = NSSwitch(frame: .zero)
+    private let aboutWindowController = AboutWindowController.shared
 
     init() {
         let window = NSWindow(
@@ -107,6 +108,7 @@ final class SettingsWindowController: NSWindowController {
             controlsCard(),
             menuBarCard(),
             startupCard(),
+            productCard(),
             diagnosticsCard(),
             footer()
         ].forEach {
@@ -140,9 +142,9 @@ final class SettingsWindowController: NSWindowController {
         icon.contentTintColor = Brand.accent
         icon.translatesAutoresizingMaskIntoConstraints = false
 
-        let title = label("WinMax", 29, .bold, Brand.text)
-        let subtitle = label("Windows-style desktop control for macOS", 13, .medium, Brand.secondary)
-        let brand = label("VAST HOSTING", 10, .bold, Brand.accent)
+        let title = label(WinMaxProduct.name, 29, .bold, Brand.text)
+        let subtitle = label(WinMaxProduct.tagline, 13, .medium, Brand.secondary)
+        let brand = label(WinMaxProduct.company.uppercased(), 10, .bold, Brand.accent)
 
         [icon, title, subtitle, brand].forEach(view.addSubview)
         NSLayoutConstraint.activate([
@@ -273,6 +275,35 @@ final class SettingsWindowController: NSWindowController {
         return card
     }
 
+    private func productCard() -> NSView {
+        let card = CardView()
+        card.heightAnchor.constraint(equalToConstant: 92).isActive = true
+        let heading = section("PRODUCT")
+        let title = label("WinMax \(WinMaxProduct.displayVersion)", 13, .semibold, Brand.text)
+        let detail = label("Official releases and product information.", 10.5, .regular, Brand.secondary)
+        let about = NSButton(title: "About", target: self, action: #selector(openAbout))
+        let updates = NSButton(title: "Check for Updates", target: self, action: #selector(checkForUpdates))
+        for button in [about, updates] {
+            button.bezelStyle = .rounded
+            button.translatesAutoresizingMaskIntoConstraints = false
+        }
+
+        [heading, title, detail, about, updates].forEach(card.addSubview)
+        NSLayoutConstraint.activate([
+            heading.leadingAnchor.constraint(equalTo: card.leadingAnchor, constant: 20),
+            heading.topAnchor.constraint(equalTo: card.topAnchor, constant: 14),
+            title.leadingAnchor.constraint(equalTo: card.leadingAnchor, constant: 20),
+            title.topAnchor.constraint(equalTo: heading.bottomAnchor, constant: 10),
+            detail.leadingAnchor.constraint(equalTo: title.leadingAnchor),
+            detail.topAnchor.constraint(equalTo: title.bottomAnchor, constant: 2),
+            updates.trailingAnchor.constraint(equalTo: card.trailingAnchor, constant: -18),
+            updates.centerYAnchor.constraint(equalTo: title.centerYAnchor, constant: 8),
+            about.trailingAnchor.constraint(equalTo: updates.leadingAnchor, constant: -8),
+            about.centerYAnchor.constraint(equalTo: updates.centerYAnchor)
+        ])
+        return card
+    }
+
     private func diagnosticsCard() -> NSView {
         let card = CardView()
         card.heightAnchor.constraint(equalToConstant: 76).isActive = true
@@ -307,9 +338,8 @@ final class SettingsWindowController: NSWindowController {
     private func footer() -> NSView {
         let view = NSView()
         view.heightAnchor.constraint(equalToConstant: 22).isActive = true
-        let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "dev"
         let text = label(
-            "WinMax v\(version) · Native · No telemetry · Built by Vast Hosting",
+            "WinMax v\(WinMaxProduct.version) · Native · No telemetry · Built by \(WinMaxProduct.company)",
             10,
             .regular,
             Brand.secondary
@@ -458,6 +488,14 @@ final class SettingsWindowController: NSWindowController {
             loginSwitch.state = LaunchAtLoginManager.shared.isEnabled ? .on : .off
             showError("Could not change login setting", error.localizedDescription)
         }
+    }
+
+    @objc private func openAbout() {
+        aboutWindowController.show()
+    }
+
+    @objc private func checkForUpdates() {
+        UpdateChecker.shared.checkForUpdates(presenting: window)
     }
 
     @objc private func copyDiagnostics() {

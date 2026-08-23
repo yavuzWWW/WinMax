@@ -1,6 +1,6 @@
 # Security and privacy model
 
-WinMax is a local native utility with no runtime dependencies or network client.
+WinMax is a native macOS utility with no third-party runtime dependencies, analytics or telemetry.
 
 ## Accessibility permission
 
@@ -27,7 +27,11 @@ WinMax intentionally uses `AXExtrasMenuBar` only and does not crawl ordinary app
 
 ## Network behavior
 
-The application contains no analytics, advertising, account system, updater or network client.
+WinMax does not perform analytics, telemetry, advertising requests, account synchronization or background network polling.
+
+The **Check for Updates…** command is an explicit user-initiated network action. When selected, WinMax sends a single HTTPS request to GitHub's public Releases API for `yavuzWWW/WinMax` to read the latest public release tag and release URL. The request includes a `WinMax/<version>` user-agent. WinMax does not send Accessibility data, window data, Menu Vault labels, diagnostics, identifiers or user content with this request.
+
+WinMax does not automatically download or install an update. If a newer version exists, the user can choose to open the official GitHub Release page in their browser.
 
 ## Logs
 
@@ -37,7 +41,7 @@ Logs are stored in:
 ~/Library/Logs/WinMax/
 ```
 
-They contain runtime state/errors only. Window titles, document names, Menu Vault item labels and keystroke text are excluded. Log rotation prevents unbounded growth.
+They contain runtime state/errors only. Window titles, document names, Menu Vault item labels and keystroke text are excluded. Failed update checks are logged only as a generic failure event; response contents and user data are not logged. Log rotation prevents unbounded growth.
 
 ## Distribution
 
