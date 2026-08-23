@@ -75,16 +75,8 @@ jobs:
             --wait
           xcrun stapler staple build/WinMax.app
 
-      - name: Package release
-        run: |
-          rm -rf dist build/dmg
-          mkdir -p dist build/dmg
-          cp -R build/WinMax.app build/dmg/WinMax.app
-          ln -s /Applications build/dmg/Applications
-          hdiutil create -volname "WinMax $WINMAX_VERSION" -srcfolder build/dmg -ov -format UDZO "dist/WinMax-$WINMAX_VERSION.dmg"
-          hdiutil verify "dist/WinMax-$WINMAX_VERSION.dmg"
-          ditto -c -k --sequesterRsrc --keepParent build/WinMax.app "dist/WinMax-$WINMAX_VERSION.zip"
-          shasum -a 256 dist/WinMax-* > dist/SHA256SUMS.txt
+      - name: Package branded release
+        run: WINMAX_SKIP_BUILD=1 ./scripts/package.sh
 
       - name: Notarize DMG
         if: env.MACOS_CERTIFICATE_BASE64 != '' && env.APPLE_ID != '' && env.APPLE_TEAM_ID != '' && env.APPLE_APP_PASSWORD != ''
