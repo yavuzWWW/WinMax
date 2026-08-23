@@ -12,7 +12,7 @@ final class OnboardingWindowController: NSWindowController {
 
     init() {
         let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 760, height: 520),
+            contentRect: NSRect(x: 0, y: 0, width: 760, height: 570),
             styleMask: [.titled, .closable],
             backing: .buffered,
             defer: false
@@ -31,10 +31,7 @@ final class OnboardingWindowController: NSWindowController {
     }
 
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
-
-    deinit {
-        permissionTimer?.invalidate()
-    }
+    deinit { permissionTimer?.invalidate() }
 
     func show() {
         step = 0
@@ -59,7 +56,7 @@ final class OnboardingWindowController: NSWindowController {
 
         let brand = NSTextField(labelWithString: "VAST HOSTING")
         brand.font = .systemFont(ofSize: 11, weight: .bold)
-        brand.textColor = NSColor(calibratedRed: 0.27, green: 0.83, blue: 0.74, alpha: 1)
+        brand.textColor = accent
         brand.translatesAutoresizingMaskIntoConstraints = false
 
         let hero = NSStackView()
@@ -71,7 +68,7 @@ final class OnboardingWindowController: NSWindowController {
         let icon = NSImageView()
         icon.image = NSImage(systemSymbolName: "rectangle.inset.filled", accessibilityDescription: "WinMax")?
             .withSymbolConfiguration(.init(pointSize: 44, weight: .semibold))
-        icon.contentTintColor = NSColor(calibratedRed: 0.27, green: 0.83, blue: 0.74, alpha: 1)
+        icon.contentTintColor = accent
         icon.translatesAutoresizingMaskIntoConstraints = false
         icon.widthAnchor.constraint(equalToConstant: 62).isActive = true
         icon.heightAnchor.constraint(equalToConstant: 62).isActive = true
@@ -80,10 +77,8 @@ final class OnboardingWindowController: NSWindowController {
         heroText.orientation = .vertical
         heroText.alignment = .leading
         heroText.spacing = 3
-        let title = text("WinMax", size: 34, weight: .bold)
-        let subtitle = text("Windows-style window control for macOS", size: 14, weight: .medium, secondary: true)
-        heroText.addArrangedSubview(title)
-        heroText.addArrangedSubview(subtitle)
+        heroText.addArrangedSubview(text("WinMax", size: 34, weight: .bold))
+        heroText.addArrangedSubview(text("Windows-style desktop control for macOS", size: 14, weight: .medium, secondary: true))
         hero.addArrangedSubview(icon)
         hero.addArrangedSubview(heroText)
 
@@ -137,28 +132,28 @@ final class OnboardingWindowController: NSWindowController {
             contentStack.removeArrangedSubview(view)
             view.removeFromSuperview()
         }
-
         if step != 1 { stopPermissionWatch() }
 
         switch step {
         case 0:
-            contentStack.addArrangedSubview(stepTitle("Make macOS windows behave the way you expect."))
-            contentStack.addArrangedSubview(body("WinMax replaces the green-button fullscreen workflow with normal desktop maximize and restore. No separate fullscreen Space. Other windows and dialogs can still appear above the maximized window."))
-            contentStack.addArrangedSubview(feature("Green button → maximize / restore"))
-            contentStack.addArrangedSubview(feature("Double-click title bar → maximize / restore"))
-            contentStack.addArrangedSubview(feature("⌃⌘F → desktop maximize instead of fullscreen Space"))
-            contentStack.addArrangedSubview(feature("Native, lightweight and open source"))
+            contentStack.addArrangedSubview(stepTitle("Make macOS behave more like a desktop."))
+            contentStack.addArrangedSubview(body("WinMax keeps windows in the current desktop, adds Windows-style snapping, and gives crowded menu bars a searchable Menu Vault — all with native macOS APIs."))
+            contentStack.addArrangedSubview(feature("Green button and double-click → maximize / restore"))
+            contentStack.addArrangedSubview(feature("Aero Snap → halves, quarters and top-edge maximize"))
+            contentStack.addArrangedSubview(feature("Menu Vault → searchable access to status items"))
+            contentStack.addArrangedSubview(feature("⌃⌘F → desktop maximize instead of a fullscreen Space"))
+            contentStack.addArrangedSubview(feature("Native, lightweight and no telemetry"))
             secondaryButton.isHidden = true
             primaryButton.title = "Get Started"
 
         case 1:
             contentStack.addArrangedSubview(stepTitle("Allow Accessibility access"))
-            contentStack.addArrangedSubview(body("WinMax needs macOS Accessibility permission to detect and resize other apps' windows. WinMax does not read document contents or send telemetry."))
+            contentStack.addArrangedSubview(body("WinMax needs macOS Accessibility permission to resize other apps' windows and discover status items for Menu Vault. It does not read document contents or send telemetry."))
             permissionStatus.font = .systemFont(ofSize: 13, weight: .semibold)
             permissionStatus.translatesAutoresizingMaskIntoConstraints = false
             updatePermissionStatus()
             contentStack.addArrangedSubview(permissionStatus)
-            contentStack.addArrangedSubview(body("Click Open Settings, enable WinMax under Privacy & Security → Accessibility, then return here. WinMax will detect the permission automatically."))
+            contentStack.addArrangedSubview(body("Click Open Settings, enable WinMax under Privacy & Security → Accessibility, then return here. WinMax checks the permission automatically."))
             secondaryButton.isHidden = false
             secondaryButton.title = "Back"
             primaryButton.title = AXIsProcessTrusted() ? "Continue" : "Open Settings"
@@ -166,11 +161,11 @@ final class OnboardingWindowController: NSWindowController {
 
         default:
             contentStack.addArrangedSubview(stepTitle("You're ready."))
-            contentStack.addArrangedSubview(body("WinMax will stay in your menu bar and handle window maximize/restore in the background. You can change every behavior later from Settings."))
-            contentStack.addArrangedSubview(feature("WinMax enabled"))
-            contentStack.addArrangedSubview(feature("Green-button override enabled"))
-            contentStack.addArrangedSubview(feature("Double-click title-bar override enabled"))
-            contentStack.addArrangedSubview(feature("Fullscreen shortcut override enabled"))
+            contentStack.addArrangedSubview(body("WinMax stays in the menu bar and runs locally in the background. Every major behavior can be turned on or off later from Settings."))
+            contentStack.addArrangedSubview(feature("Desktop maximize overrides enabled"))
+            contentStack.addArrangedSubview(feature("Aero Snap enabled"))
+            contentStack.addArrangedSubview(feature("Menu Vault enabled · shortcut ⌃⌥⌘V"))
+            contentStack.addArrangedSubview(feature("Launch at login remains optional"))
             secondaryButton.isHidden = false
             secondaryButton.title = "Back"
             primaryButton.title = "Start WinMax"
@@ -221,6 +216,8 @@ final class OnboardingWindowController: NSWindowController {
             settings.overrideGreenButton = true
             settings.titleBarDoubleClick = true
             settings.overrideFullscreenShortcut = true
+            settings.aeroSnapEnabled = true
+            settings.menuVaultEnabled = true
             settings.hasCompletedOnboarding = true
             stopPermissionWatch()
             window?.close()
@@ -237,9 +234,7 @@ final class OnboardingWindowController: NSWindowController {
     private func updatePermissionStatus() {
         let trusted = AXIsProcessTrusted()
         permissionStatus.stringValue = trusted ? "✓ Accessibility permission granted" : "● Accessibility permission required"
-        permissionStatus.textColor = trusted
-            ? NSColor(calibratedRed: 0.27, green: 0.83, blue: 0.74, alpha: 1)
-            : NSColor(calibratedRed: 1.0, green: 0.68, blue: 0.20, alpha: 1)
+        permissionStatus.textColor = trusted ? accent : NSColor(calibratedRed: 1.0, green: 0.68, blue: 0.20, alpha: 1)
     }
 
     private func stepTitle(_ value: String) -> NSTextField { text(value, size: 22, weight: .bold) }
@@ -260,7 +255,7 @@ final class OnboardingWindowController: NSWindowController {
         row.alignment = .centerY
         row.spacing = 10
         let icon = NSImageView(image: NSImage(systemSymbolName: "checkmark.circle.fill", accessibilityDescription: nil) ?? NSImage())
-        icon.contentTintColor = NSColor(calibratedRed: 0.27, green: 0.83, blue: 0.74, alpha: 1)
+        icon.contentTintColor = accent
         icon.translatesAutoresizingMaskIntoConstraints = false
         icon.widthAnchor.constraint(equalToConstant: 18).isActive = true
         icon.heightAnchor.constraint(equalToConstant: 18).isActive = true
@@ -284,5 +279,9 @@ final class OnboardingWindowController: NSWindowController {
         view.translatesAutoresizingMaskIntoConstraints = false
         view.heightAnchor.constraint(equalToConstant: 1).isActive = true
         return view
+    }
+
+    private var accent: NSColor {
+        NSColor(calibratedRed: 0.27, green: 0.83, blue: 0.74, alpha: 1)
     }
 }

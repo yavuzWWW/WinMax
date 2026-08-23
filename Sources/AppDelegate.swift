@@ -15,7 +15,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         settingsWindowController = SettingsWindowController()
         onboardingWindowController = OnboardingWindowController()
         setupMenuBar()
+
         WindowController.shared.start()
+        AeroSnapManager.shared.start()
+        MenuVaultController.shared.start()
 
         NotificationCenter.default.addObserver(
             self,
@@ -43,13 +46,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationWillTerminate(_ notification: Notification) {
+        MenuVaultController.shared.stop()
+        AeroSnapManager.shared.stop()
         WindowController.shared.stop()
         WinMaxLogger.shared.info("Application terminating")
     }
 
     private func setupMenuBar() {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
-        if let image = NSImage(systemSymbolName: "rectangle.inset.filled", accessibilityDescription: "WinMax") {
+        statusItem.autosaveName = "WinMax.Main"
+        if let image = NSImage(
+            systemSymbolName: "rectangle.inset.filled",
+            accessibilityDescription: "WinMax"
+        ) {
             image.isTemplate = true
             statusItem.button?.image = image
         } else {
@@ -58,10 +67,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         statusItem.button?.toolTip = "WinMax"
 
         let menu = NSMenu()
-
         let open = NSMenuItem(title: "Open WinMax", action: #selector(openSettings), keyEquivalent: ",")
         open.target = self
         menu.addItem(open)
+
+        let vault = NSMenuItem(title: "Open Menu Vault…", action: #selector(openMenuVault), keyEquivalent: "")
+        vault.target = self
+        menu.addItem(vault)
 
         let setup = NSMenuItem(title: "Run Setup Again…", action: #selector(openOnboarding), keyEquivalent: "")
         setup.target = self
@@ -72,7 +84,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         menu.addItem(statusItemLabel)
         menu.addItem(.separator())
 
-        enabledItem = NSMenuItem(title: "Enabled", action: #selector(toggleEnabled), keyEquivalent: "")
+        enabledItem = NSMenuItem(title: "Window Control Enabled", action: #selector(toggleEnabled), keyEquivalent: "")
         enabledItem.target = self
         menu.addItem(enabledItem)
 
@@ -85,7 +97,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         menu.addItem(restore)
 
         menu.addItem(.separator())
-
         let permissions = NSMenuItem(title: "Accessibility Settings…", action: #selector(openAccessibility), keyEquivalent: "")
         permissions.target = self
         menu.addItem(permissions)
@@ -93,13 +104,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let logs = NSMenuItem(title: "Open Debug Logs", action: #selector(openLogs), keyEquivalent: "")
         logs.target = self
         menu.addItem(logs)
-
         menu.addItem(.separator())
 
         let quit = NSMenuItem(title: "Quit WinMax", action: #selector(quitApp), keyEquivalent: "q")
         quit.target = self
         menu.addItem(quit)
-
         statusItem.menu = menu
     }
 
@@ -112,7 +121,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         } else if !WindowController.shared.isEventTapInstalled {
             statusItemLabel?.title = "● Starting…"
         } else if !settings.enabled {
-            statusItemLabel?.title = "● Paused"
+            statusItemLabel?.title = settings.menuVaultEnabled
+                ? "● Window control paused · Vault available"
+                : "● Paused"
         } else {
             statusItemLabel?.title = "● Active"
         }
@@ -122,13 +133,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         settingsWindowController.show()
     }
 
+    @objc private func openMenuVault() {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.08) {
+            MenuVaultController.shared.show()
+        }
+    }
+
     @objc private func openOnboarding() {
         onboardingWindowController.show()
     }
 
     @objc private func toggleEnabled() {
         SettingsStore.shared.enabled.toggle()
-        WinMaxLogger.shared.info("Enabled toggled from menu: \(SettingsStore.shared.enabled)")
+        WinMaxLogger.shared.info(
+            "Window control toggled from menu: \(SettingsStore.shared.enabled)"
+        )
     }
 
     @objc private func toggleFrontWindow() {
