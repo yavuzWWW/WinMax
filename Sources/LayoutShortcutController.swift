@@ -1,34 +1,67 @@
 import Cocoa
+import ApplicationServices
 
 final class LayoutShortcutController {
     static let shared = LayoutShortcutController()
 
     private var globalMonitor: Any?
     private var localMonitor: Any?
+    private var runtimeObserver: NSObjectProtocol?
 
     private init() {}
 
     func start() {
-        guard globalMonitor == nil, localMonitor == nil else { return }
-
-        globalMonitor = NSEvent.addGlobalMonitorForEvents(matching: .keyDown) { event in
-            _ = Self.handle(event)
+        if localMonitor == nil {
+            localMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
+                Self.handle(event) ? nil : event
+            }
         }
 
-        localMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
-            Self.handle(event) ? nil : event
+        if runtimeObserver == nil {
+            runtimeObserver = NotificationCenter.default.addObserver(
+                forName: .winMaxRuntimeStateChanged,
+                object: nil,
+                queue: .main
+            ) { [weak self] _ in
+                self?.refreshGlobalMonitor()
+            }
         }
+
+        refreshGlobalMonitor()
     }
 
     func stop() {
-        if let globalMonitor {
-            NSEvent.removeMonitor(globalMonitor)
-        }
+        removeGlobalMonitor()
         if let localMonitor {
             NSEvent.removeMonitor(localMonitor)
         }
-        globalMonitor = nil
+        if let runtimeObserver {
+            NotificationCenter.default.removeObserver(runtimeObserver)
+        }
         localMonitor = nil
+        runtimeObserver = nil
+    }
+
+    private func refreshGlobalMonitor() {
+        if AXIsProcessTrusted() {
+            installGlobalMonitorIfNeeded()
+        } else {
+            removeGlobalMonitor()
+        }
+    }
+
+    private func installGlobalMonitorIfNeeded() {
+        guard globalMonitor == nil else { return }
+        globalMonitor = NSEvent.addGlobalMonitorForEvents(matching: .keyDown) { event in
+            _ = Self.handle(event)
+        }
+    }
+
+    private func removeGlobalMonitor() {
+        if let globalMonitor {
+            NSEvent.removeMonitor(globalMonitor)
+        }
+        globalMonitor = nil
     }
 
     @discardableResult
