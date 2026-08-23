@@ -19,6 +19,14 @@ xcrun swiftc \
   -o "$BUILD/snap-geometry-tests"
 "$BUILD/snap-geometry-tests"
 
+xcrun swiftc \
+  -swift-version 5 \
+  -warnings-as-errors \
+  "$ROOT/Sources/Versioning.swift" \
+  "$ROOT/scripts/test-versioning.swift" \
+  -o "$BUILD/versioning-tests"
+"$BUILD/versioning-tests"
+
 "$ROOT/scripts/build.sh"
 
 APP="$BUILD/WinMax.app"
