@@ -27,7 +27,9 @@ ARCHS="$(lipo -archs "$EXECUTABLE")"
 [[ "$ARCHS" == *arm64* && "$ARCHS" == *x86_64* ]]
 codesign --verify --deep --strict "$APP"
 
-if otool -L "$EXECUTABLE" | grep -E '/usr/local/|/opt/homebrew/|/Users/' >/dev/null; then
+# otool prints the executable path as a non-indented architecture header for
+# universal binaries. Only indented rows are actual linked dependencies.
+if otool -L "$EXECUTABLE" | grep -E '^[[:space:]]+(/usr/local/|/opt/homebrew/|/Users/)' >/dev/null; then
   echo "Unexpected non-system dynamic dependency detected:" >&2
   otool -L "$EXECUTABLE" >&2
   exit 1
