@@ -12,6 +12,7 @@ APP="$ROOT/build/WinMax.app"
 DIST="$ROOT/dist"
 STAGE="$ROOT/build/dmg"
 WORK="$ROOT/build/dmg-work"
+VERIFY="$ROOT/build/package-verify"
 VERSION="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$APP/Contents/Info.plist")"
 DMG="$DIST/WinMax-$VERSION.dmg"
 ZIP="$DIST/WinMax-$VERSION.zip"
@@ -19,9 +20,17 @@ RW_DMG="$WORK/WinMax-rw.dmg"
 BACKGROUND="$WORK/WinMax-DMG.png"
 STYLE_SCRIPT="$WORK/style-dmg.applescript"
 VOLUME="WinMax $VERSION"
+MOUNT_POINT=""
 
-rm -rf "$DIST" "$STAGE" "$WORK"
-mkdir -p "$DIST" "$STAGE" "$WORK"
+cleanup() {
+  if [[ -n "$MOUNT_POINT" && -d "$MOUNT_POINT" ]]; then
+    hdiutil detach "$MOUNT_POINT" -force -quiet 2>/dev/null || true
+  fi
+}
+trap cleanup EXIT INT TERM
+
+rm -rf "$DIST" "$STAGE" "$WORK" "$VERIFY"
+mkdir -p "$DIST" "$STAGE" "$WORK" "$VERIFY"
 cp -R "$APP" "$STAGE/WinMax.app"
 ln -s /Applications "$STAGE/Applications"
 mkdir -p "$STAGE/.background"
@@ -72,9 +81,7 @@ EOF
   ) &
   WATCHDOG_PID=$!
 
-  if wait "$STYLE_PID"; then
-    :
-  else
+  if ! wait "$STYLE_PID"; then
     echo "Warning: Finder styling was unavailable; using standard DMG layout." >&2
   fi
   kill "$WATCHDOG_PID" 2>/dev/null || true
@@ -82,13 +89,23 @@ EOF
 
   sync
   hdiutil detach "$MOUNT_POINT" -quiet || hdiutil detach "$MOUNT_POINT" -force -quiet
+  MOUNT_POINT=""
 else
   echo "Warning: could not mount writable DMG for Finder styling; continuing with standard layout." >&2
 fi
 
 hdiutil convert "$RW_DMG" -format UDZO -imagekey zlib-level=9 -o "$DMG" >/dev/null
 hdiutil verify "$DMG"
+
 ditto -c -k --sequesterRsrc --keepParent "$APP" "$ZIP"
+ditto -x -k "$ZIP" "$VERIFY"
+[[ -d "$VERIFY/WinMax.app" ]] || { echo "ZIP verification failed" >&2; exit 1; }
+codesign --verify --deep --strict "$VERIFY/WinMax.app"
+
 shasum -a 256 "$DMG" "$ZIP" > "$DIST/SHA256SUMS.txt"
+(
+  cd "$DIST"
+  shasum -a 256 -c SHA256SUMS.txt
+)
 
 printf '\nRelease files:\n%s\n%s\n%s\n' "$DMG" "$ZIP" "$DIST/SHA256SUMS.txt"
