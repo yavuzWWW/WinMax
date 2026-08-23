@@ -40,21 +40,26 @@ final class LayoutShortcutController {
             return false
         }
 
-        let relevant = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
-        let required: NSEvent.ModifierFlags = [.control, .option, .command]
-        guard relevant == required else { return false }
-
-        switch event.keyCode {
-        case 123: // Left Arrow
-            WindowLayoutCommandController.shared.apply(.leftHalf)
-        case 124: // Right Arrow
-            WindowLayoutCommandController.shared.apply(.rightHalf)
-        case 125: // Down Arrow
-            WindowLayoutCommandController.shared.restore()
-        case 126: // Up Arrow
-            WindowLayoutCommandController.shared.apply(.maximize)
-        default:
+        let flags = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
+        guard let command = LayoutShortcut.command(
+            keyCode: event.keyCode,
+            control: flags.contains(.control),
+            option: flags.contains(.option),
+            command: flags.contains(.command),
+            shift: flags.contains(.shift)
+        ) else {
             return false
+        }
+
+        switch command {
+        case .leftHalf:
+            WindowLayoutCommandController.shared.apply(.leftHalf)
+        case .rightHalf:
+            WindowLayoutCommandController.shared.apply(.rightHalf)
+        case .maximize:
+            WindowLayoutCommandController.shared.apply(.maximize)
+        case .restore:
+            WindowLayoutCommandController.shared.restore()
         }
         return true
     }
