@@ -2,6 +2,30 @@
 
 All notable WinMax changes are recorded here.
 
+## Unreleased
+
+### Added
+
+- Centralized WinMax product metadata and stable feature identifiers for future product surfaces.
+- Native **About WinMax** window with version/build information and official project links.
+- User-initiated **Check for Updates…** flow backed by the official GitHub Releases API.
+- Dedicated Product section in Settings with About and update actions.
+- Deterministic version-comparison regression tests in the production validation gate.
+- Product architecture guidance covering future editions, licensing boundaries and website readiness.
+
+### Changed
+
+- Settings header/footer now use centralized WinMax/Vast Hosting product metadata.
+- About is handled by one shared window controller across Settings and the menu bar.
+- README and security documentation now describe the product/update experience explicitly.
+
+### Privacy and safety
+
+- Update checks are manual only; WinMax does not perform background update polling.
+- The update checker uses an ephemeral URL session with no persistent cookie or URL cache storage.
+- Update requests send no Accessibility data, window data, Menu Vault labels, diagnostics or user content.
+- Updates are not downloaded or installed automatically; WinMax only offers the official release page.
+
 ## 1.1.0 — 2026-08-23
 
 ### Added
