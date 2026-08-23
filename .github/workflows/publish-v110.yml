@@ -1,0 +1,66 @@
+name: Publish WinMax v1.1.0 Tag
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - ".github/workflows/publish-v110.yml"
+
+permissions:
+  contents: write
+
+env:
+  TARGET_SHA: 5537be433c8358efe86868ec657f567a1e5edb4b
+  RELEASE_TAG: v1.1.0
+
+jobs:
+  validate-and-tag:
+    runs-on: macos-15
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Validate target is the merged release candidate
+        run: |
+          git cat-file -e "$TARGET_SHA^{commit}"
+          git merge-base --is-ancestor "$TARGET_SHA" "$GITHUB_SHA"
+          [[ "$(git show "$TARGET_SHA:Info.plist" | plutil -extract CFBundleShortVersionString raw -o - -)" == "1.1.0" ]]
+
+      - name: Rebuild exact release candidate
+        run: |
+          git checkout --detach "$TARGET_SHA"
+          ./scripts/check.sh
+          ./scripts/package.sh
+          [[ -f dist/WinMax-1.1.0.dmg ]]
+          [[ -f dist/WinMax-1.1.0.zip ]]
+          [[ -f dist/SHA256SUMS.txt ]]
+
+      - name: Create release tag
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if git ls-remote --exit-code --tags origin "refs/tags/$RELEASE_TAG" >/dev/null 2>&1; then
+            git fetch origin "refs/tags/$RELEASE_TAG:refs/tags/$RELEASE_TAG"
+            EXISTING="$(git rev-list -n 1 "$RELEASE_TAG")"
+            [[ "$EXISTING" == "$TARGET_SHA" ]] || {
+              echo "$RELEASE_TAG already exists on a different commit" >&2
+              exit 1
+            }
+          else
+            git tag -a "$RELEASE_TAG" "$TARGET_SHA" -m "WinMax 1.1.0"
+            git push origin "refs/tags/$RELEASE_TAG"
+          fi
+
+      - name: Record successful release gate
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          CONTENT="$(printf 'WinMax v1.1.0 release gate passed\nTarget: %s\n' "$TARGET_SHA" | base64)"
+          gh api \
+            --method PUT \
+            "repos/$GITHUB_REPOSITORY/contents/RELEASE_READY_1_1_0" \
+            -f message='chore: record WinMax 1.1.0 release gate' \
+            -f content="$CONTENT" \
+            -f branch=main
