@@ -5,6 +5,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusItem: NSStatusItem!
     private var enabledItem: NSMenuItem!
     private var statusItemLabel: NSMenuItem!
+    private var menuBarSectionItem: NSMenuItem!
     private var settingsWindowController: SettingsWindowController!
     private var onboardingWindowController: OnboardingWindowController!
     private let aboutWindowController = AboutWindowController.shared
@@ -20,6 +21,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         WindowController.shared.start()
         AeroSnapManager.shared.start()
         MenuVaultController.shared.start()
+        MenuBarSectionController.shared.start()
         LayoutShortcutController.shared.start()
 
         NotificationCenter.default.addObserver(
@@ -32,6 +34,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             self,
             selector: #selector(refreshMenu),
             name: .winMaxRuntimeStateChanged,
+            object: nil
+        )
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(refreshMenu),
+            name: .winMaxMenuBarSectionStateChanged,
             object: nil
         )
 
@@ -49,6 +57,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationWillTerminate(_ notification: Notification) {
         LayoutShortcutController.shared.stop()
+        MenuBarSectionController.shared.stop()
         MenuVaultController.shared.stop()
         AeroSnapManager.shared.stop()
         WindowController.shared.stop()
@@ -77,6 +86,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let vault = NSMenuItem(title: "Open Menu Vault…", action: #selector(openMenuVault), keyEquivalent: "")
         vault.target = self
         menu.addItem(vault)
+
+        menuBarSectionItem = NSMenuItem(
+            title: "Enable Hidden Menu-Bar Section…",
+            action: #selector(toggleHiddenMenuBarSection),
+            keyEquivalent: ""
+        )
+        menuBarSectionItem.target = self
+        menu.addItem(menuBarSectionItem)
 
         let setup = NSMenuItem(title: "Run Setup Again…", action: #selector(openOnboarding), keyEquivalent: "")
         setup.target = self
@@ -168,6 +185,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let settings = SettingsStore.shared
         enabledItem?.state = settings.enabled ? .on : .off
 
+        if !settings.menuBarHiddenSectionEnabled {
+            menuBarSectionItem?.title = "Enable Hidden Menu-Bar Section…"
+        } else if MenuBarSectionController.shared.isCollapsed {
+            menuBarSectionItem?.title = "Show Hidden Menu-Bar Items"
+        } else {
+            menuBarSectionItem?.title = "Hide Items Left of │"
+        }
+
         if !AXIsProcessTrusted() {
             statusItemLabel?.title = "● Accessibility needed"
         } else if !WindowController.shared.isEventTapInstalled {
@@ -189,6 +214,26 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.08) {
             MenuVaultController.shared.show()
         }
+    }
+
+    @objc private func toggleHiddenMenuBarSection() {
+        let settings = SettingsStore.shared
+        if !settings.menuBarHiddenSectionEnabled {
+            settings.menuBarHiddenSectionEnabled = true
+            MenuBarSectionController.shared.expand()
+            showHiddenSectionInstructions()
+        } else {
+            MenuBarSectionController.shared.toggle()
+        }
+    }
+
+    private func showHiddenSectionInstructions() {
+        let alert = NSAlert()
+        alert.alertStyle = .informational
+        alert.messageText = "Hidden menu-bar section enabled"
+        alert.informativeText = "Hold Command and drag the menu-bar icons you want WinMax to hide to the left of the │ separator. Then choose ‘Hide Items Left of │’ from the WinMax menu. Menu Vault remains available for reaching Accessibility-exposed hidden items."
+        alert.addButton(withTitle: "Got It")
+        alert.runModal()
     }
 
     @objc private func openOnboarding() {
