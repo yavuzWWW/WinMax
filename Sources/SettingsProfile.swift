@@ -1,7 +1,7 @@
 import Foundation
 
 struct WinMaxSettingsProfile: Codable, Equatable {
-    static let currentSchemaVersion = 2
+    static let currentSchemaVersion = 3
 
     let schemaVersion: Int
     let enabled: Bool
@@ -12,6 +12,7 @@ struct WinMaxSettingsProfile: Codable, Equatable {
     let menuVaultEnabled: Bool
     let showWindowOnLaunch: Bool
     let layoutShortcutsEnabled: Bool
+    let menuBarHiddenSectionEnabled: Bool
 
     init(
         schemaVersion: Int = Self.currentSchemaVersion,
@@ -22,7 +23,8 @@ struct WinMaxSettingsProfile: Codable, Equatable {
         aeroSnapEnabled: Bool,
         menuVaultEnabled: Bool,
         showWindowOnLaunch: Bool,
-        layoutShortcutsEnabled: Bool = true
+        layoutShortcutsEnabled: Bool = true,
+        menuBarHiddenSectionEnabled: Bool = false
     ) {
         self.schemaVersion = schemaVersion
         self.enabled = enabled
@@ -33,6 +35,7 @@ struct WinMaxSettingsProfile: Codable, Equatable {
         self.menuVaultEnabled = menuVaultEnabled
         self.showWindowOnLaunch = showWindowOnLaunch
         self.layoutShortcutsEnabled = layoutShortcutsEnabled
+        self.menuBarHiddenSectionEnabled = menuBarHiddenSectionEnabled
     }
 
     init(from decoder: Decoder) throws {
@@ -46,6 +49,7 @@ struct WinMaxSettingsProfile: Codable, Equatable {
         menuVaultEnabled = try container.decode(Bool.self, forKey: .menuVaultEnabled)
         showWindowOnLaunch = try container.decode(Bool.self, forKey: .showWindowOnLaunch)
         layoutShortcutsEnabled = try container.decodeIfPresent(Bool.self, forKey: .layoutShortcutsEnabled) ?? true
+        menuBarHiddenSectionEnabled = try container.decodeIfPresent(Bool.self, forKey: .menuBarHiddenSectionEnabled) ?? false
     }
 
     func validated() throws -> WinMaxSettingsProfile {
