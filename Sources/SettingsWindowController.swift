@@ -24,6 +24,7 @@ final class SettingsWindowController: NSWindowController {
     private let titleSwitch = NSSwitch(frame: .zero)
     private let shortcutSwitch = NSSwitch(frame: .zero)
     private let aeroSnapSwitch = NSSwitch(frame: .zero)
+    private let layoutShortcutsSwitch = NSSwitch(frame: .zero)
     private let menuVaultSwitch = NSSwitch(frame: .zero)
     private let loginSwitch = NSSwitch(frame: .zero)
     private let aboutWindowController = AboutWindowController.shared
@@ -200,7 +201,7 @@ final class SettingsWindowController: NSWindowController {
 
     private func controlsCard() -> NSView {
         let card = CardView()
-        card.heightAnchor.constraint(equalToConstant: 245).isActive = true
+        card.heightAnchor.constraint(equalToConstant: 292).isActive = true
         let heading = section("WINDOW CONTROL")
         let rows = NSStackView()
         rows.orientation = .vertical
@@ -211,6 +212,12 @@ final class SettingsWindowController: NSWindowController {
         rows.addArrangedSubview(toggleRow("Double-click title bar", "Maximize or restore like Windows.", titleSwitch, #selector(toggleTitle)))
         rows.addArrangedSubview(toggleRow("Override ⌃⌘F", "Use desktop maximize instead of native fullscreen.", shortcutSwitch, #selector(toggleShortcut)))
         rows.addArrangedSubview(toggleRow("Aero Snap", "Drag to edges and corners for halves, quarters and maximize.", aeroSnapSwitch, #selector(toggleAeroSnap)))
+        rows.addArrangedSubview(toggleRow(
+            "Keyboard window layouts",
+            "Use ⌃⌥⌘ + arrows for layouts; add ⇧ to move between displays.",
+            layoutShortcutsSwitch,
+            #selector(toggleLayoutShortcuts)
+        ))
 
         card.addSubview(heading)
         card.addSubview(rows)
@@ -422,6 +429,7 @@ final class SettingsWindowController: NSWindowController {
             statusTitle.stringValue = "WinMax is active"
             var features = ["desktop maximize"]
             if settings.aeroSnapEnabled { features.append("Aero Snap") }
+            if settings.layoutShortcutsEnabled { features.append("keyboard layouts") }
             if settings.menuVaultEnabled { features.append("Menu Vault") }
             statusDetail.stringValue = features.joined(separator: " · ")
             permissionButton.title = "Accessibility"
@@ -433,6 +441,7 @@ final class SettingsWindowController: NSWindowController {
         titleSwitch.state = settings.titleBarDoubleClick ? .on : .off
         shortcutSwitch.state = settings.overrideFullscreenShortcut ? .on : .off
         aeroSnapSwitch.state = settings.aeroSnapEnabled ? .on : .off
+        layoutShortcutsSwitch.state = settings.layoutShortcutsEnabled ? .on : .off
         menuVaultSwitch.state = settings.menuVaultEnabled ? .on : .off
         loginSwitch.state = LaunchAtLoginManager.shared.isEnabled ? .on : .off
     }
@@ -468,6 +477,10 @@ final class SettingsWindowController: NSWindowController {
     @objc private func toggleAeroSnap() {
         settings.aeroSnapEnabled = aeroSnapSwitch.state == .on
         if !settings.aeroSnapEnabled { AeroSnapManager.shared.cancel() }
+    }
+
+    @objc private func toggleLayoutShortcuts() {
+        settings.layoutShortcutsEnabled = layoutShortcutsSwitch.state == .on
     }
 
     @objc private func toggleMenuVault() {
