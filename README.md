@@ -4,7 +4,7 @@
 
 ### Windows-style desktop control for macOS
 
-**Maximize normally. Snap windows. Reach a crowded menu bar. Stay in your current Space.**
+**Maximize normally. Snap windows. Control layouts from the keyboard. Reach a crowded menu bar.**
 
 [![Build](https://github.com/yavuzWWW/WinMax/actions/workflows/build.yml/badge.svg)](https://github.com/yavuzWWW/WinMax/actions/workflows/build.yml)
 [![Release](https://img.shields.io/github/v/release/yavuzWWW/WinMax?display_name=tag&sort=semver)](https://github.com/yavuzWWW/WinMax/releases/latest)
@@ -18,9 +18,9 @@ Built by **[Vast Hosting](https://vasthosting.cloud)** · Native Swift/AppKit ·
 
 ---
 
-WinMax is a lightweight native macOS utility for people who prefer a traditional desktop workflow. It replaces the green-button fullscreen jump with normal maximize/restore, adds Windows-style edge snapping, and provides **Menu Vault** for searchable access to Accessibility-exposed menu-bar status items.
+WinMax is a lightweight native macOS utility for people who prefer a traditional desktop workflow. It replaces the green-button fullscreen jump with normal maximize/restore, adds Windows-style edge snapping and keyboard layouts, provides multi-monitor movement, and includes **Menu Vault** for searchable access to Accessibility-exposed menu-bar status items.
 
-WinMax is designed as a real desktop product rather than a collection of scripts: native onboarding and settings, a dedicated About experience, versioned releases, deterministic regression tests, Universal Intel/Apple Silicon builds, release checksums and an explicit user-initiated update check.
+WinMax is designed as a real desktop product rather than a collection of scripts: native onboarding and settings, a dedicated About experience, portable versioned preferences, deterministic regression tests, Universal Intel/Apple Silicon builds, release checksums and an explicit user-initiated update check.
 
 WinMax does not replace WindowServer and does not use Electron, a webview, or third-party runtime dependencies. Window control is implemented through macOS Accessibility, AppKit and CoreGraphics APIs.
 
@@ -51,6 +51,21 @@ Drag a normal window to a display edge and release:
 
 A translucent preview shows the destination before release. Maximized and snapped windows share one restore history, so dragging between states does not create competing restore behavior.
 
+### Keyboard layouts & multi-monitor
+
+The active window can be controlled without touching the mouse:
+
+| Shortcut | Result |
+|---|---|
+| `Control + Option + Command + Left` | Left half |
+| `Control + Option + Command + Right` | Right half |
+| `Control + Option + Command + Up` | Maximize |
+| `Control + Option + Command + Down` | Restore |
+| `Shift + Control + Option + Command + Left` | Previous display |
+| `Shift + Control + Option + Command + Right` | Next display |
+
+Moving a snapped or maximized window to another display preserves that layout. Normal windows keep a sensible relative size and position, including on differently sized or negative-coordinate displays. The keyboard-layout system has its own Settings switch and is included in exported WinMax preferences.
+
 ### Menu Vault
 
 Menu Vault provides a searchable, scrollable view of **status items exposed through macOS Accessibility**.
@@ -70,6 +85,7 @@ Menu Vault provides a searchable, scrollable view of **status items exposed thro
 - Native Settings and diagnostics.
 - Dedicated **About WinMax** window with product/version information and official project links.
 - **Check for Updates…** compares the installed version against the latest official GitHub Release.
+- Export/import versioned JSON settings profiles and safely reset behavior to defaults.
 - No background update polling and no automatic downloads.
 - Single-instance protection to reduce duplicate-app/TCC confusion.
 - Central product metadata and feature catalog ready for future product editions without paywalling current functionality.
@@ -93,8 +109,12 @@ Development/ad-hoc builds can require macOS's manual **Open** flow. A Developer 
 | `Control + Command + F` | Maximize / restore |
 | Drag title bar to screen edge/corner | Aero Snap |
 | Drag a managed window away | Restore normal size and continue dragging |
+| `Control + Option + Command + Arrow` | Keyboard window layouts |
+| Add `Shift` to left/right layout shortcut | Move window between displays |
 | Click Menu Vault status item | Open searchable status-item panel |
 | `Control + Option + Command + V` | Open/close Menu Vault globally |
+| WinMax menu → Window Layout | Access layouts and display movement |
+| WinMax menu → Settings | Export/import/reset preferences |
 | WinMax menu → Window Control Enabled | Pause/resume window overrides |
 | WinMax menu → Check for Updates… | Check the latest official GitHub Release |
 | WinMax menu → About WinMax | Product/version information |
@@ -123,9 +143,11 @@ WinMax is privacy-first:
 - no keystroke text logging
 - no window titles, document names, or Menu Vault labels written to logs
 
+Keyboard layouts react only to a small fixed set of modifier + arrow hardware key codes. WinMax does not record typed characters or general key sequences.
+
 The only current application network action is the explicit **Check for Updates…** command. It makes a single HTTPS request to GitHub's public Releases API for this repository and sends no window, Accessibility, Menu Vault, diagnostic or user-content data. WinMax does not automatically download or install updates.
 
-Accessibility is used only for window geometry/control and status-item discovery/activation. Debug logs stay in `~/Library/Logs/WinMax/` and rotate locally.
+Accessibility is used only for window geometry/control, fixed WinMax shortcuts and status-item discovery/activation. Debug logs stay in `~/Library/Logs/WinMax/` and rotate locally.
 
 See [Security model](docs/SECURITY_MODEL.md) and [Security policy](SECURITY.md).
 
@@ -146,7 +168,7 @@ cd WinMax
 ./install.sh
 ```
 
-`./scripts/check.sh` performs the production validation used by CI: source parsing with warnings treated as errors, deterministic Snap geometry tests, version-comparison regression tests, Universal build, bundle checks, code-signature validation and external dynamic-dependency checks.
+`./scripts/check.sh` performs the production validation used by CI: source parsing with warnings treated as errors, deterministic Snap geometry, versioning, settings-profile, keyboard shortcut and multi-monitor transfer tests, Universal build, bundle checks, code-signature validation and external dynamic-dependency checks.
 
 Package locally with:
 
@@ -160,24 +182,28 @@ This creates a verified DMG, ZIP and `SHA256SUMS.txt` in `dist/`.
 
 ```text
 Sources/
-  WindowController.swift       Core event interception + maximize behavior
-  WindowLayoutStore.swift      Shared maximize/Snap restore state
-  AeroSnapManager.swift        Drag session + preview
-  SnapGeometry.swift           Pure Snap target geometry
-  MenuVaultController.swift    Status-item discovery and Vault UI
-  ProductInfo.swift            Product identity + feature metadata
-  Versioning.swift             Deterministic release version comparison
-  UpdateChecker.swift          Explicit GitHub Release update check
-  AboutWindowController.swift  Native About experience
+  WindowController.swift              Core event interception + maximize behavior
+  WindowLayoutStore.swift             Shared maximize/Snap restore state
+  AeroSnapManager.swift               Drag session + preview
+  SnapGeometry.swift                  Pure Snap target geometry
+  WindowLayoutCommandController.swift Keyboard + multi-display layout commands
+  LayoutShortcut.swift                Pure keyboard command mapping
+  LayoutShortcutController.swift      AppKit shortcut monitor lifecycle
+  DisplayTransferGeometry.swift       Pure multi-monitor frame transfer math
+  MenuVaultController.swift           Status-item discovery and Vault UI
+  ProductInfo.swift                   Product identity + feature metadata
+  Versioning.swift                    Deterministic release version comparison
+  UpdateChecker.swift                 Explicit GitHub Release update check
+  AboutWindowController.swift         Native About experience
+  SettingsProfile.swift               Portable settings schema
+  SettingsProfileController.swift     Export/import/reset UI
   SettingsWindowController.swift
   OnboardingWindowController.swift
-scripts/
+ scripts/
   build.sh
   check.sh
   package.sh
-  test-snap-geometry.swift
-  test-versioning.swift
-docs/
+ docs/
 ```
 
 See [Architecture](docs/ARCHITECTURE.md) for the full design.
