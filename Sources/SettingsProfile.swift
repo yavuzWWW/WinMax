@@ -1,7 +1,7 @@
 import Foundation
 
 struct WinMaxSettingsProfile: Codable, Equatable {
-    static let currentSchemaVersion = 1
+    static let currentSchemaVersion = 2
 
     let schemaVersion: Int
     let enabled: Bool
@@ -11,6 +11,7 @@ struct WinMaxSettingsProfile: Codable, Equatable {
     let aeroSnapEnabled: Bool
     let menuVaultEnabled: Bool
     let showWindowOnLaunch: Bool
+    let layoutShortcutsEnabled: Bool
 
     init(
         schemaVersion: Int = Self.currentSchemaVersion,
@@ -20,7 +21,8 @@ struct WinMaxSettingsProfile: Codable, Equatable {
         overrideFullscreenShortcut: Bool,
         aeroSnapEnabled: Bool,
         menuVaultEnabled: Bool,
-        showWindowOnLaunch: Bool
+        showWindowOnLaunch: Bool,
+        layoutShortcutsEnabled: Bool = true
     ) {
         self.schemaVersion = schemaVersion
         self.enabled = enabled
@@ -30,6 +32,20 @@ struct WinMaxSettingsProfile: Codable, Equatable {
         self.aeroSnapEnabled = aeroSnapEnabled
         self.menuVaultEnabled = menuVaultEnabled
         self.showWindowOnLaunch = showWindowOnLaunch
+        self.layoutShortcutsEnabled = layoutShortcutsEnabled
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        schemaVersion = try container.decodeIfPresent(Int.self, forKey: .schemaVersion) ?? 1
+        enabled = try container.decode(Bool.self, forKey: .enabled)
+        overrideGreenButton = try container.decode(Bool.self, forKey: .overrideGreenButton)
+        titleBarDoubleClick = try container.decode(Bool.self, forKey: .titleBarDoubleClick)
+        overrideFullscreenShortcut = try container.decode(Bool.self, forKey: .overrideFullscreenShortcut)
+        aeroSnapEnabled = try container.decode(Bool.self, forKey: .aeroSnapEnabled)
+        menuVaultEnabled = try container.decode(Bool.self, forKey: .menuVaultEnabled)
+        showWindowOnLaunch = try container.decode(Bool.self, forKey: .showWindowOnLaunch)
+        layoutShortcutsEnabled = try container.decodeIfPresent(Bool.self, forKey: .layoutShortcutsEnabled) ?? true
     }
 
     func validated() throws -> WinMaxSettingsProfile {

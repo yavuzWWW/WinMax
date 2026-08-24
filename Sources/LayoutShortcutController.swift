@@ -7,6 +7,7 @@ final class LayoutShortcutController {
     private var globalMonitor: Any?
     private var localMonitor: Any?
     private var runtimeObserver: NSObjectProtocol?
+    private var settingsObserver: NSObjectProtocol?
 
     private init() {}
 
@@ -27,6 +28,16 @@ final class LayoutShortcutController {
             }
         }
 
+        if settingsObserver == nil {
+            settingsObserver = NotificationCenter.default.addObserver(
+                forName: .winMaxSettingsChanged,
+                object: nil,
+                queue: .main
+            ) { [weak self] _ in
+                self?.refreshGlobalMonitor()
+            }
+        }
+
         refreshGlobalMonitor()
     }
 
@@ -38,12 +49,16 @@ final class LayoutShortcutController {
         if let runtimeObserver {
             NotificationCenter.default.removeObserver(runtimeObserver)
         }
+        if let settingsObserver {
+            NotificationCenter.default.removeObserver(settingsObserver)
+        }
         localMonitor = nil
         runtimeObserver = nil
+        settingsObserver = nil
     }
 
     private func refreshGlobalMonitor() {
-        if AXIsProcessTrusted() {
+        if AXIsProcessTrusted(), SettingsStore.shared.layoutShortcutsEnabled {
             installGlobalMonitorIfNeeded()
         } else {
             removeGlobalMonitor()
@@ -67,6 +82,7 @@ final class LayoutShortcutController {
     @discardableResult
     private static func handle(_ event: NSEvent) -> Bool {
         guard SettingsStore.shared.enabled,
+              SettingsStore.shared.layoutShortcutsEnabled,
               AXIsProcessTrusted(),
               event.type == .keyDown,
               event.isARepeat == false else {

@@ -9,6 +9,7 @@ final class SettingsStore {
         static let titleBarDoubleClick = "titleBarDoubleClick"
         static let overrideFullscreenShortcut = "overrideFullscreenShortcut"
         static let aeroSnapEnabled = "aeroSnapEnabled"
+        static let layoutShortcutsEnabled = "layoutShortcutsEnabled"
         static let menuVaultEnabled = "menuVaultEnabled"
         static let showWindowOnLaunch = "showWindowOnLaunch"
         static let hasCompletedOnboarding = "hasCompletedOnboarding"
@@ -21,6 +22,7 @@ final class SettingsStore {
         Key.titleBarDoubleClick: true,
         Key.overrideFullscreenShortcut: true,
         Key.aeroSnapEnabled: true,
+        Key.layoutShortcutsEnabled: true,
         Key.menuVaultEnabled: true,
         Key.showWindowOnLaunch: false,
         Key.hasCompletedOnboarding: false,
@@ -59,6 +61,11 @@ final class SettingsStore {
         set { defaults.set(newValue, forKey: Key.aeroSnapEnabled); notify() }
     }
 
+    var layoutShortcutsEnabled: Bool {
+        get { defaults.bool(forKey: Key.layoutShortcutsEnabled) }
+        set { defaults.set(newValue, forKey: Key.layoutShortcutsEnabled); notify() }
+    }
+
     var menuVaultEnabled: Bool {
         get { defaults.bool(forKey: Key.menuVaultEnabled) }
         set { defaults.set(newValue, forKey: Key.menuVaultEnabled); notify() }
@@ -82,7 +89,8 @@ final class SettingsStore {
             overrideFullscreenShortcut: overrideFullscreenShortcut,
             aeroSnapEnabled: aeroSnapEnabled,
             menuVaultEnabled: menuVaultEnabled,
-            showWindowOnLaunch: showWindowOnLaunch
+            showWindowOnLaunch: showWindowOnLaunch,
+            layoutShortcutsEnabled: layoutShortcutsEnabled
         )
     }
 
@@ -103,6 +111,7 @@ final class SettingsStore {
         defaults.set(profile.titleBarDoubleClick, forKey: Key.titleBarDoubleClick)
         defaults.set(profile.overrideFullscreenShortcut, forKey: Key.overrideFullscreenShortcut)
         defaults.set(profile.aeroSnapEnabled, forKey: Key.aeroSnapEnabled)
+        defaults.set(profile.layoutShortcutsEnabled, forKey: Key.layoutShortcutsEnabled)
         defaults.set(profile.menuVaultEnabled, forKey: Key.menuVaultEnabled)
         defaults.set(profile.showWindowOnLaunch, forKey: Key.showWindowOnLaunch)
         defaults.set(WinMaxSettingsProfile.currentSchemaVersion, forKey: Key.settingsSchemaVersion)
@@ -116,6 +125,7 @@ final class SettingsStore {
             Key.titleBarDoubleClick,
             Key.overrideFullscreenShortcut,
             Key.aeroSnapEnabled,
+            Key.layoutShortcutsEnabled,
             Key.menuVaultEnabled,
             Key.showWindowOnLaunch
         ] {
@@ -127,7 +137,8 @@ final class SettingsStore {
 
     private func migrateIfNeeded() {
         let stored = defaults.integer(forKey: Key.settingsSchemaVersion)
-        if stored <= 0 {
+        if stored < WinMaxSettingsProfile.currentSchemaVersion {
+            // New settings use registered defaults unless a previous value already exists.
             defaults.set(WinMaxSettingsProfile.currentSchemaVersion, forKey: Key.settingsSchemaVersion)
         }
     }

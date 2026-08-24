@@ -10,7 +10,8 @@ struct SettingsProfileTests {
             overrideFullscreenShortcut: false,
             aeroSnapEnabled: true,
             menuVaultEnabled: true,
-            showWindowOnLaunch: false
+            showWindowOnLaunch: false,
+            layoutShortcutsEnabled: false
         )
 
         let encoder = JSONEncoder()
@@ -18,8 +19,27 @@ struct SettingsProfileTests {
         let data = try encoder.encode(profile)
         let decoded = try JSONDecoder().decode(WinMaxSettingsProfile.self, from: data)
         expect(decoded == profile, "round-trip preserves settings")
+        expect(decoded.layoutShortcutsEnabled == false, "round-trip preserves shortcut preference")
         let validated = try decoded.validated()
         expect(validated == profile, "current schema validates")
+
+        let legacyJSON = """
+        {
+          "schemaVersion": 1,
+          "enabled": true,
+          "overrideGreenButton": true,
+          "titleBarDoubleClick": true,
+          "overrideFullscreenShortcut": true,
+          "aeroSnapEnabled": true,
+          "menuVaultEnabled": true,
+          "showWindowOnLaunch": false
+        }
+        """.data(using: .utf8)!
+
+        let legacy = try JSONDecoder().decode(WinMaxSettingsProfile.self, from: legacyJSON)
+        expect(legacy.schemaVersion == 1, "legacy schema version is preserved")
+        expect(legacy.layoutShortcutsEnabled == true, "legacy profiles default layout shortcuts on")
+        _ = try legacy.validated()
 
         let future = WinMaxSettingsProfile(
             schemaVersion: WinMaxSettingsProfile.currentSchemaVersion + 1,
@@ -29,7 +49,8 @@ struct SettingsProfileTests {
             overrideFullscreenShortcut: true,
             aeroSnapEnabled: true,
             menuVaultEnabled: true,
-            showWindowOnLaunch: false
+            showWindowOnLaunch: false,
+            layoutShortcutsEnabled: true
         )
 
         do {

@@ -13,14 +13,19 @@ All notable WinMax changes are recorded here.
 - Versioned JSON settings profiles with export/import support.
 - Safe **Reset to Defaults** flow that preserves Accessibility permission, onboarding state and Launch at Login.
 - Official Support destination in the WinMax menu.
-- Deterministic version-comparison and settings-profile regression tests in the production validation gate.
+- Keyboard window layouts: `Control + Option + Command + Arrow` for left/right halves, maximize and restore.
+- Multi-monitor transfer shortcuts: add `Shift` to left/right layout shortcuts to move the active window between displays.
+- Multi-monitor transfers preserve snapped/maximized mode and carry a sensible restore frame to the destination display.
+- Dedicated **Keyboard window layouts** preference in Settings.
+- Deterministic version-comparison, settings-profile, shortcut and display-transfer regression tests in the production validation gate.
 - Product architecture guidance covering future editions, licensing boundaries and website readiness.
 
 ### Changed
 
 - Settings header/footer now use centralized WinMax/Vast Hosting product metadata.
 - About is handled by one shared window controller across Settings and the menu bar.
-- Settings files use an explicit schema version so future WinMax releases can migrate safely.
+- Settings profile schema advanced to v2; schema-v1 exports remain import-compatible and default keyboard layouts to enabled.
+- Keyboard shortcut monitors are removed when the feature is disabled and restored when re-enabled/Accessibility trust changes.
 - README and security documentation now describe the product/update experience explicitly.
 
 ### Privacy and safety
@@ -31,6 +36,7 @@ All notable WinMax changes are recorded here.
 - Release links returned by the update API are accepted only for the official HTTPS `yavuzWWW/WinMax` GitHub release path.
 - Updates are not downloaded or installed automatically; WinMax only offers the official release page.
 - Imported settings files are restricted to JSON regular files with a small size limit and a supported schema version.
+- Layout shortcuts use fixed hardware key-code combinations only; WinMax does not store or log typed text.
 
 ## 1.1.0 — 2026-08-23
 
