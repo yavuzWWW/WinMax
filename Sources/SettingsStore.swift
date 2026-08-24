@@ -11,6 +11,7 @@ final class SettingsStore {
         static let aeroSnapEnabled = "aeroSnapEnabled"
         static let layoutShortcutsEnabled = "layoutShortcutsEnabled"
         static let menuVaultEnabled = "menuVaultEnabled"
+        static let menuBarHiddenSectionEnabled = "menuBarHiddenSectionEnabled"
         static let showWindowOnLaunch = "showWindowOnLaunch"
         static let hasCompletedOnboarding = "hasCompletedOnboarding"
         static let settingsSchemaVersion = "settingsSchemaVersion"
@@ -24,6 +25,7 @@ final class SettingsStore {
         Key.aeroSnapEnabled: true,
         Key.layoutShortcutsEnabled: true,
         Key.menuVaultEnabled: true,
+        Key.menuBarHiddenSectionEnabled: false,
         Key.showWindowOnLaunch: false,
         Key.hasCompletedOnboarding: false,
         Key.settingsSchemaVersion: WinMaxSettingsProfile.currentSchemaVersion
@@ -71,6 +73,11 @@ final class SettingsStore {
         set { defaults.set(newValue, forKey: Key.menuVaultEnabled); notify() }
     }
 
+    var menuBarHiddenSectionEnabled: Bool {
+        get { defaults.bool(forKey: Key.menuBarHiddenSectionEnabled) }
+        set { defaults.set(newValue, forKey: Key.menuBarHiddenSectionEnabled); notify() }
+    }
+
     var showWindowOnLaunch: Bool {
         get { defaults.bool(forKey: Key.showWindowOnLaunch) }
         set { defaults.set(newValue, forKey: Key.showWindowOnLaunch); notify() }
@@ -90,7 +97,8 @@ final class SettingsStore {
             aeroSnapEnabled: aeroSnapEnabled,
             menuVaultEnabled: menuVaultEnabled,
             showWindowOnLaunch: showWindowOnLaunch,
-            layoutShortcutsEnabled: layoutShortcutsEnabled
+            layoutShortcutsEnabled: layoutShortcutsEnabled,
+            menuBarHiddenSectionEnabled: menuBarHiddenSectionEnabled
         )
     }
 
@@ -113,6 +121,7 @@ final class SettingsStore {
         defaults.set(profile.aeroSnapEnabled, forKey: Key.aeroSnapEnabled)
         defaults.set(profile.layoutShortcutsEnabled, forKey: Key.layoutShortcutsEnabled)
         defaults.set(profile.menuVaultEnabled, forKey: Key.menuVaultEnabled)
+        defaults.set(profile.menuBarHiddenSectionEnabled, forKey: Key.menuBarHiddenSectionEnabled)
         defaults.set(profile.showWindowOnLaunch, forKey: Key.showWindowOnLaunch)
         defaults.set(WinMaxSettingsProfile.currentSchemaVersion, forKey: Key.settingsSchemaVersion)
         notify()
@@ -127,6 +136,7 @@ final class SettingsStore {
             Key.aeroSnapEnabled,
             Key.layoutShortcutsEnabled,
             Key.menuVaultEnabled,
+            Key.menuBarHiddenSectionEnabled,
             Key.showWindowOnLaunch
         ] {
             defaults.removeObject(forKey: key)
